@@ -2,11 +2,11 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Igreja Cristã Resplandecer</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260429f">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260429b">
 </head>
 <body>
     {% if current_user.is_authenticated %}
@@ -83,26 +83,6 @@
         
         {% block content %}{% endblock %}
     </main>
-
-    <!-- Bottom Navigation Bar (mobile) -->
-    <nav class="bottom-nav" id="bottomNav">
-        <a href="{{ url_for('feed') }}" data-path="/feed" id="bn-home">
-            <i class="fa-solid fa-house"></i>
-            <span>Início</span>
-        </a>
-        <a href="{{ url_for('lives') }}" data-path="/lives" id="bn-lives">
-            <i class="fa-solid fa-tower-broadcast"></i>
-            <span>Lives</span>
-        </a>
-        <a href="{{ url_for('offerings') }}" data-path="/offerings" id="bn-tithes">
-            <i class="fa-solid fa-hand-holding-dollar"></i>
-            <span>Dízimos</span>
-        </a>
-        <a href="{{ url_for('profile') }}" data-path="/profile" id="bn-profile">
-            <i class="fa-solid fa-user"></i>
-            <span>Perfil</span>
-        </a>
-    </nav>
     {% else %}
     <!-- Login/Register Area centered -->
     <div style="display: flex; width: 100%; min-height: 100vh; align-items: center; justify-content: center; flex-direction: column;">
@@ -143,7 +123,6 @@
             } else {
                 sidebar.classList.add('sidebar-open');
                 overlay && overlay.classList.add('active');
-                document.body.classList.add('sidebar-active');
                 document.body.style.overflow = 'hidden';
             }
         }
@@ -154,7 +133,6 @@
             if (!sidebar) return;
             sidebar.classList.remove('sidebar-open');
             overlay && overlay.classList.remove('active');
-            document.body.classList.remove('sidebar-active');
             document.body.style.overflow = '';
         }
 
@@ -162,17 +140,6 @@
         window.addEventListener('resize', () => {
             if (window.innerWidth >= 768) closeSidebar();
         });
-
-        // ── Bottom nav: marca link ativo ─────────────────────────────────────
-        (function() {
-            const path = window.location.pathname;
-            document.querySelectorAll('#bottomNav a').forEach(a => {
-                const ap = a.getAttribute('data-path');
-                if (ap && path.startsWith(ap)) {
-                    a.classList.add('active');
-                }
-            });
-        })();
     </script>
 </body>
 </html>
