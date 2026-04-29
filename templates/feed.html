@@ -21,11 +21,24 @@
     <div style="background:#ef5350;padding:.4rem 1rem;display:flex;align-items:center;gap:.5rem;">
         <span style="width:9px;height:9px;border-radius:50%;background:white;animation:pulse 1.2s infinite;"></span>
         <strong style="color:white;letter-spacing:1px;font-size:.9rem;">AO VIVO AGORA</strong>
+        <a href="https://www.youtube.com/watch?v={{ live_video_id }}" target="_blank"
+           style="margin-left:auto;color:white;font-size:.8rem;text-decoration:none;opacity:.85;">
+            <i class="fa-brands fa-youtube"></i> Abrir no YouTube
+        </a>
     </div>
     <div style="position:relative;padding-bottom:56.25%;height:0;">
         <iframe style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;"
-                src="https://www.youtube.com/embed/{{ live_video_id }}?autoplay=1"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                src="https://www.youtube.com/embed/{{ live_video_id }}?autoplay=1&origin={{ request.host_url }}"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen></iframe>
+    </div>
+    <div style="padding:.75rem 1.25rem;background:rgba(0,0,0,0.2);display:flex;align-items:center;gap:.75rem;">
+        <i class="fa-solid fa-circle-info" style="color:var(--text-muted);font-size:.85rem;"></i>
+        <span style="color:var(--text-muted);font-size:.82rem;">Se o vídeo não carregar, o embed pode estar desativado na live.</span>
+        <a href="https://www.youtube.com/watch?v={{ live_video_id }}" target="_blank"
+           class="btn btn-primary" style="margin-left:auto;padding:.35rem .9rem;font-size:.8rem;text-decoration:none;">
+            <i class="fa-brands fa-youtube"></i> Assistir no YouTube
+        </a>
     </div>
 </div>
 {% endif %}

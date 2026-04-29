@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div style="margin-bottom:2rem;display:flex;justify-content:space-between;align-items:center;">
+<div style="margin-bottom:2rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
     <div>
         <h1 style="color:var(--primary);"><i class="fa-solid fa-file-invoice"></i> Contas a Pagar</h1>
         <p style="color:var(--text-muted);">Gerencie todas as obrigações financeiras da igreja</p>
@@ -15,7 +15,8 @@
 </div>
 
 <div class="card glass">
-    <table style="width:100%;border-collapse:collapse;">
+    <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;min-width:640px;">
         <thead>
             <tr style="border-bottom:1px solid var(--glass-border);">
                 <th style="padding:1rem;color:var(--primary);">Descrição</th>
@@ -63,5 +64,6 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
 </div>
 {% endblock %}

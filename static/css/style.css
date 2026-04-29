@@ -358,3 +358,165 @@ body {
 .qr-container img {
     max-width: 250px;
 }
+
+/* ── Topbar mobile (escondida no desktop) ───────────────────────────────────── */
+.mobile-topbar {
+    display: none;
+}
+
+/* ── Botão fechar sidebar (só no mobile) ────────────────────────────────────── */
+.sidebar-close {
+    display: none;
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.3rem;
+    cursor: pointer;
+    padding: .25rem .4rem;
+    border-radius: 8px;
+    transition: color .2s;
+}
+.sidebar-close:hover { color: var(--text-main); }
+
+/* ── Overlay escuro ao abrir sidebar no mobile ───────────────────────────────── */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.55);
+    z-index: 99;
+    backdrop-filter: blur(2px);
+    opacity: 0;
+    transition: opacity .3s ease;
+}
+.sidebar-overlay.active {
+    opacity: 1;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   BREAKPOINT — TABLET  (≤ 1024px)
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+    .sidebar { width: 220px; }
+    .main-content {
+        margin-left: 220px;
+        width: calc(100% - 220px);
+        padding: 1.5rem;
+    }
+    .stat-card h2 { font-size: 2rem; }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   BREAKPOINT — MOBILE  (≤ 767px)
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 767px) {
+
+    /* Topbar visível */
+    .mobile-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        height: 56px;
+        padding: 0 1rem;
+        background: rgba(15,17,26,.95);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--glass-border);
+        z-index: 101;
+    }
+
+    /* Botão fechar sidebar visível */
+    .sidebar-close { display: block; }
+
+    /* Sidebar vira drawer deslizante */
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform .3s cubic-bezier(.4,0,.2,1);
+        border-radius: 0 16px 16px 0;
+        width: 270px;
+        z-index: 100;
+    }
+    .sidebar.sidebar-open {
+        transform: translateX(0);
+    }
+
+    /* Overlay visível quando sidebar abre */
+    .sidebar-overlay { display: block; }
+
+    /* Conteúdo ocupa tela inteira + padding do topbar */
+    .main-content {
+        margin-left: 0;
+        width: 100%;
+        padding: 1rem;
+        padding-top: calc(56px + 1rem); /* topbar + espaço */
+    }
+
+    /* Ajustes de card */
+    .card { padding: 1.2rem; }
+    .post  { padding: 1rem; }
+
+    /* Grade financeira: 1 coluna no mobile */
+    .finance-grid {
+        grid-template-columns: 1fr;
+    }
+    .stat-card { padding: 1.25rem; }
+    .stat-card h2 { font-size: 1.75rem; }
+
+    /* Formulários mais compactos */
+    .form-group { margin-bottom: 1rem; }
+    .form-control { padding: .75rem; }
+    .btn { padding: .75rem 1.25rem; font-size: .95rem; }
+
+    /* Título de card menor */
+    .card-title { font-size: 1.2rem; }
+
+    /* Tabelas: scroll horizontal */
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* QR Code menor */
+    .qr-container img { max-width: 200px; }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   BREAKPOINT — MOBILE PEQUENO  (≤ 479px)
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 479px) {
+    .main-content { padding: .75rem; padding-top: calc(56px + .75rem); }
+    .card { padding: 1rem; margin-bottom: 1.2rem; }
+    .post  { padding: .85rem; }
+    .stat-card h2 { font-size: 1.5rem; }
+    .btn { padding: .6rem 1rem; font-size: .9rem; }
+    /* Botões de ação do post em coluna */
+    .post-actions { flex-wrap: wrap; gap: .5rem; }
+}
+
+/* ── Hamburguer ─────────────────────────────────────────────────────────── */
+.hamburger {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 40px;
+    height: 40px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: .4rem;
+    border-radius: 8px;
+    transition: background .2s;
+}
+.hamburger:hover { background: rgba(255,255,255,.07); }
+.hamburger span {
+    display: block;
+    width: 100%;
+    height: 2px;
+    background: var(--text-main);
+    border-radius: 2px;
+    transition: transform .3s, opacity .3s;
+}

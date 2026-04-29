@@ -10,7 +10,23 @@
 </head>
 <body>
     {% if current_user.is_authenticated %}
-    <nav class="sidebar glass">
+
+    <!-- Overlay para fechar sidebar no mobile -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+    <!-- Topbar mobile -->
+    <header class="mobile-topbar">
+        <button class="hamburger" id="hamburgerBtn" onclick="toggleSidebar()" aria-label="Menu">
+            <span></span><span></span><span></span>
+        </button>
+        <div style="display:flex;align-items:center;gap:.6rem;">
+            <i class="fa-solid fa-church" style="color:var(--primary);font-size:1.3rem;"></i>
+            <span style="color:var(--primary);font-weight:700;font-size:1rem;">ICR</span>
+        </div>
+        <div style="width:40px;"></div><!-- spacer para centralizar logo -->
+    </header>
+
+    <nav class="sidebar glass" id="sidebar">
         <!-- Logo fixo no topo -->
         <div class="sidebar-header">
             <i class="fa-solid fa-church" style="font-size:2rem;color:var(--primary);"></i>
@@ -18,27 +34,31 @@
                 <h2 style="margin:0;color:var(--primary);font-size:1.1rem;line-height:1;">Igreja Cristã</h2>
                 <span style="color:var(--text-muted);font-size:.8rem;">Resplandecer</span>
             </div>
+            <!-- Botão fechar sidebar (mobile) -->
+            <button class="sidebar-close" onclick="closeSidebar()" aria-label="Fechar menu">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
         </div>
 
         <!-- Links roláveis -->
         <div class="sidebar-scroll">
             <p class="nav-label">GERAL</p>
             <ul class="nav-links">
-                <li><a href="{{ url_for('feed') }}"><i class="fa-solid fa-house"></i> Início</a></li>
-                <li><a href="{{ url_for('lives') }}"><i class="fa-solid fa-tower-broadcast"></i> Lives</a></li>
-                <li><a href="{{ url_for('offerings') }}"><i class="fa-solid fa-hand-holding-dollar"></i> Dízimos e Ofertas</a></li>
-                <li><a href="{{ url_for('profile') }}"><i class="fa-solid fa-user"></i> Meu Perfil</a></li>
+                <li><a href="{{ url_for('feed') }}" onclick="closeSidebar()"><i class="fa-solid fa-house"></i> Início</a></li>
+                <li><a href="{{ url_for('lives') }}" onclick="closeSidebar()"><i class="fa-solid fa-tower-broadcast"></i> Lives</a></li>
+                <li><a href="{{ url_for('offerings') }}" onclick="closeSidebar()"><i class="fa-solid fa-hand-holding-dollar"></i> Dízimos e Ofertas</a></li>
+                <li><a href="{{ url_for('profile') }}" onclick="closeSidebar()"><i class="fa-solid fa-user"></i> Meu Perfil</a></li>
             </ul>
 
             {% if current_user.role in ['admin', 'pastor'] %}
             <p class="nav-label" style="margin-top:1.5rem;">ADMINISTRAÇÃO</p>
             <ul class="nav-links">
-                <li><a href="{{ url_for('admin_dashboard') }}"><i class="fa-solid fa-shield-halved"></i> Painel Admin</a></li>
-                <li><a href="{{ url_for('members') }}"><i class="fa-solid fa-users"></i> Membros</a></li>
-                <li><a href="{{ url_for('families') }}"><i class="fa-solid fa-people-roof"></i> Famílias</a></li>
-                <li><a href="{{ url_for('finance') }}"><i class="fa-solid fa-chart-line"></i> Financeiro</a></li>
-                <li><a href="{{ url_for('bills') }}"><i class="fa-solid fa-file-invoice"></i> Contas a Pagar</a></li>
-                <li><a href="{{ url_for('reports') }}"><i class="fa-solid fa-chart-pie"></i> Relatórios</a></li>
+                <li><a href="{{ url_for('admin_dashboard') }}" onclick="closeSidebar()"><i class="fa-solid fa-shield-halved"></i> Painel Admin</a></li>
+                <li><a href="{{ url_for('members') }}" onclick="closeSidebar()"><i class="fa-solid fa-users"></i> Membros</a></li>
+                <li><a href="{{ url_for('families') }}" onclick="closeSidebar()"><i class="fa-solid fa-people-roof"></i> Famílias</a></li>
+                <li><a href="{{ url_for('finance') }}" onclick="closeSidebar()"><i class="fa-solid fa-chart-line"></i> Financeiro</a></li>
+                <li><a href="{{ url_for('bills') }}" onclick="closeSidebar()"><i class="fa-solid fa-file-invoice"></i> Contas a Pagar</a></li>
+                <li><a href="{{ url_for('reports') }}" onclick="closeSidebar()"><i class="fa-solid fa-chart-pie"></i> Relatórios</a></li>
             </ul>
             {% endif %}
         </div>
@@ -50,7 +70,7 @@
             </a>
         </div>
     </nav>
-    <main class="main-content">
+    <main class="main-content" id="mainContent">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -91,6 +111,35 @@
                 setTimeout(() => alert.remove(), 500);
             });
         }, 3000);
+
+        // ── Sidebar mobile ────────────────────────────────────────────────────
+        function toggleSidebar() {
+            const sidebar  = document.getElementById('sidebar');
+            const overlay  = document.getElementById('sidebarOverlay');
+            if (!sidebar) return;
+            const open = sidebar.classList.contains('sidebar-open');
+            if (open) {
+                closeSidebar();
+            } else {
+                sidebar.classList.add('sidebar-open');
+                overlay && overlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            if (!sidebar) return;
+            sidebar.classList.remove('sidebar-open');
+            overlay && overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // Fecha sidebar ao redimensionar para desktop
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 768) closeSidebar();
+        });
     </script>
 </body>
 </html>
