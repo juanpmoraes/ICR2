@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="header-section" style="margin-bottom: 2rem;">
+    <h1 style="color: var(--primary);"><i class="fa-solid fa-shield-halved"></i> Painel Administrativo</h1>
+    <p style="color: var(--text-muted);">Gerencie o sistema da Igreja</p>
+</div>
+
+<div class="finance-grid">
+    <div class="card glass stat-card">
+        <h3><i class="fa-solid fa-users"></i> Membros</h3>
+        <a href="{{ url_for('members') }}" class="btn btn-primary" style="margin-top: 1rem; display: inline-block;">Gerenciar</a>
+    </div>
+    <div class="card glass stat-card">
+        <h3><i class="fa-solid fa-chart-line"></i> Financeiro</h3>
+        <a href="{{ url_for('finance') }}" class="btn btn-primary" style="margin-top: 1rem; display: inline-block;">Visualizar Relatórios</a>
+    </div>
+    <div class="card glass stat-card">
+        <h3><i class="fa-solid fa-people-roof"></i> Famílias</h3>
+        <button class="btn btn-primary" style="margin-top: 1rem; display: inline-block;" onclick="alert('Em breve!')">Gerenciar</button>
+    </div>
+</div>
+{% endblock %}

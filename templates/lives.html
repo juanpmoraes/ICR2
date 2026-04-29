@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:2rem;">
+    <div>
+        <h1 style="color:var(--primary);"><i class="fa-solid fa-tower-broadcast"></i> Lives & Vídeos</h1>
+        <p style="color:var(--text-muted);">Canal da Igreja Cristã Resplandecer no YouTube</p>
+    </div>
+    {% if channel_id %}
+    <a href="https://www.youtube.com/channel/{{ channel_id }}" target="_blank" class="btn"
+       style="background:#FF0000;color:white;text-decoration:none;">
+        <i class="fa-brands fa-youtube"></i> Abrir Canal
+    </a>
+    {% endif %}
+</div>
+
+{# ── AO VIVO ── #}
+{% if live_id %}
+<div class="card glass" style="margin-bottom:2.5rem;overflow:hidden;border:2px solid #ef5350;" id="live-box">
+    <div style="background:linear-gradient(90deg,#ef5350,#c62828);padding:.6rem 1.5rem;display:flex;align-items:center;gap:.75rem;">
+        <span style="width:10px;height:10px;border-radius:50%;background:white;animation:pulse 1s infinite;flex-shrink:0;"></span>
+        <strong style="color:white;letter-spacing:1.5px;font-size:.95rem;">AO VIVO AGORA</strong>
+        <span style="color:rgba(255,255,255,0.7);font-size:.8rem;margin-left:auto;">Atualiza automaticamente a cada 60s</span>
+    </div>
+    <div style="position:relative;padding-bottom:56.25%;height:0;">
+        <iframe id="live-frame"
+                src="https://www.youtube.com/embed/{{ live_id }}?autoplay=1"
+                style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen></iframe>
+    </div>
+</div>
+{% else %}
+<div class="card glass" id="live-box" style="margin-bottom:2.5rem;text-align:center;padding:2.5rem;border:2px dashed var(--glass-border);">
+    <i class="fa-solid fa-tower-broadcast" style="font-size:3rem;color:var(--text-muted);margin-bottom:1rem;"></i>
+    <h3 style="color:var(--text-muted);">Nenhuma transmissão ao vivo no momento</h3>
+    <p style="color:var(--text-muted);font-size:.9rem;">Quando o pastor iniciar uma live, ela aparecerá aqui automaticamente.</p>
+    <p style="color:var(--text-muted);font-size:.8rem;margin-top:.5rem;"><i class="fa-solid fa-rotate"></i> Esta página verifica a cada 60 segundos</p>
+</div>
+{% endif %}
+
+{# ── Próximas Lives ── #}
+{% if upcoming %}
+<h2 style="color:var(--primary);margin-bottom:1rem;"><i class="fa-solid fa-calendar-check"></i> Próximas Lives</h2>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.25rem;margin-bottom:2.5rem;">
+    {% for v in upcoming %}
+    {% set vid_id = v.id.videoId %}
+    {% set thumb  = v.snippet.thumbnails.medium.url %}
+    {% set title  = v.snippet.title %}
+    {% set sched  = v.snippet.get('scheduledStartTime', '') %}
+    <a href="https://www.youtube.com/watch?v={{ vid_id }}" target="_blank" style="text-decoration:none;">
+        <div class="card glass" style="overflow:hidden;transition:transform .2s;cursor:pointer;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+            <div style="position:relative;">
+                <img src="{{ thumb }}" alt="{{ title }}" style="width:100%;height:160px;object-fit:cover;display:block;">
+                <div style="position:absolute;top:.5rem;left:.5rem;background:#ff9800;color:white;font-size:.7rem;font-weight:700;padding:.2rem .6rem;border-radius:4px;letter-spacing:1px;">EM BREVE</div>
+            </div>
+            <div style="padding:1rem;">
+                <p style="color:var(--text-main);font-size:.9rem;font-weight:600;margin:0 0 .25rem;line-height:1.3;">{{ title }}</p>
+                {% if sched %}
+                <p style="color:var(--text-muted);font-size:.78rem;margin:0;"><i class="fa-solid fa-clock"></i> {{ sched[:10] }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% endif %}
+
+{# ── Vídeos Recentes ── #}
+{% if recent %}
+<h2 style="color:var(--primary);margin-bottom:1rem;"><i class="fa-brands fa-youtube"></i> Vídeos Recentes</h2>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.25rem;">
+    {% for v in recent %}
+    {% set vid_id = v.id.videoId %}
+    {% set thumb  = v.snippet.thumbnails.medium.url %}
+    {% set title  = v.snippet.title %}
+    {% set date_  = v.snippet.publishedAt[:10] %}
+    <a href="https://www.youtube.com/watch?v={{ vid_id }}" target="_blank" style="text-decoration:none;">
+        <div class="card glass" style="overflow:hidden;transition:transform .2s;cursor:pointer;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+            <div style="position:relative;">
+                <img src="{{ thumb }}" alt="{{ title }}" style="width:100%;height:155px;object-fit:cover;display:block;">
+                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;background:rgba(0,0,0,0.5);transition:opacity .2s;" class="play-overlay">
+                    <i class="fa-solid fa-circle-play" style="font-size:3rem;color:white;"></i>
+                </div>
+            </div>
+            <div style="padding:1rem;">
+                <p style="color:var(--text-main);font-size:.9rem;font-weight:600;margin:0 0 .25rem;line-height:1.3;">{{ title }}</p>
+                <p style="color:var(--text-muted);font-size:.78rem;margin:0;"><i class="fa-solid fa-calendar"></i> {{ date_ }}</p>
+            </div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if not upcoming and not recent and not live_id %}
+<div class="card glass" style="text-align:center;padding:2rem;">
+    <p style="color:var(--text-muted);">Configure <code>YOUTUBE_API_KEY</code> e <code>YOUTUBE_CHANNEL_ID</code> no arquivo <code>.env</code> para ativar a integração.</p>
+</div>
+{% endif %}
+
+<style>
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+a:hover .play-overlay{opacity:1!important;}
+</style>
+
+<script>
+// Polling: verifica status da live a cada 60s e atualiza sem recarregar a página
+let lastLiveId = {{ '"' + live_id + '"' if live_id else 'null' }};
+
+setInterval(async () => {
+    try {
+        const r = await fetch('/api/live-status');
+        const data = await r.json();
+        const box = document.getElementById('live-box');
+
+        if (data.live && data.video_id !== lastLiveId) {
+            // Nova live detectada — atualiza o player
+            lastLiveId = data.video_id;
+            box.innerHTML = `
+                <div style="background:linear-gradient(90deg,#ef5350,#c62828);padding:.6rem 1.5rem;display:flex;align-items:center;gap:.75rem;">
+                    <span style="width:10px;height:10px;border-radius:50%;background:white;animation:pulse 1s infinite;"></span>
+                    <strong style="color:white;letter-spacing:1.5px;">AO VIVO AGORA</strong>
+                </div>
+                <div style="position:relative;padding-bottom:56.25%;height:0;">
+                    <iframe src="https://www.youtube.com/embed/${data.video_id}?autoplay=1"
+                            style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;"
+                            allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"
+                            allowfullscreen></iframe>
+                </div>`;
+            box.style.border = '2px solid #ef5350';
+        } else if (!data.live && lastLiveId) {
+            // Live encerrou
+            lastLiveId = null;
+            box.innerHTML = `
+                <div style="text-align:center;padding:2.5rem;">
+                    <i class="fa-solid fa-tower-broadcast" style="font-size:3rem;color:var(--text-muted);margin-bottom:1rem;"></i>
+                    <h3 style="color:var(--text-muted);">Transmissão encerrada</h3>
+                    <p style="color:var(--text-muted);font-size:.9rem;">Verifique os vídeos recentes abaixo.</p>
+                </div>`;
+            box.style.border = '2px dashed var(--glass-border)';
+        }
+    } catch(e) {}
+}, 60000);
+</script>
+{% endblock %}

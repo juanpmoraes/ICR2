@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="margin-bottom:2rem;display:flex;justify-content:space-between;align-items:center;">
+    <div>
+        <h1 style="color:var(--primary);"><i class="fa-solid fa-file-invoice"></i> Contas a Pagar</h1>
+        <p style="color:var(--text-muted);">Gerencie todas as obrigações financeiras da igreja</p>
+    </div>
+    <a href="{{ url_for('add_bill') }}" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Nova Conta</a>
+</div>
+
+<div class="card glass stat-card" style="text-align:center;margin-bottom:2rem;border-top:4px solid #f57c00;">
+    <h3><i class="fa-solid fa-clock"></i> Total Pendente / Atrasado</h3>
+    <h2 style="color:#ff9800;">R$ {{ "%.2f"|format(total_pendente) }}</h2>
+</div>
+
+<div class="card glass">
+    <table style="width:100%;border-collapse:collapse;">
+        <thead>
+            <tr style="border-bottom:1px solid var(--glass-border);">
+                <th style="padding:1rem;color:var(--primary);">Descrição</th>
+                <th style="padding:1rem;color:var(--primary);">Categoria</th>
+                <th style="padding:1rem;color:var(--primary);">Vencimento</th>
+                <th style="padding:1rem;color:var(--primary);">Valor</th>
+                <th style="padding:1rem;color:var(--primary);">Status</th>
+                <th style="padding:1rem;color:var(--primary);">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for b in bills %}
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                <td style="padding:1rem;">{{ b.description }}</td>
+                <td style="padding:1rem;"><span style="background:rgba(212,175,55,0.15);color:var(--primary);padding:.3rem .7rem;border-radius:20px;font-size:.85rem;">{{ b.category }}</span></td>
+                <td style="padding:1rem;color:{% if b.due_date < today and b.status != 'pago' %}#ef5350{% else %}var(--text-main){% endif %};">
+                    {{ b.due_date.strftime('%d/%m/%Y') }}
+                </td>
+                <td style="padding:1rem;font-weight:bold;">R$ {{ "%.2f"|format(b.amount) }}</td>
+                <td style="padding:1rem;">
+                    {% if b.status == 'pago' %}
+                    <span style="color:#4caf50;background:rgba(76,175,80,0.1);padding:.3rem .7rem;border-radius:20px;">✓ Pago</span>
+                    {% elif b.status == 'atrasado' %}
+                    <span style="color:#ef5350;background:rgba(239,83,80,0.1);padding:.3rem .7rem;border-radius:20px;">⚠ Atrasado</span>
+                    {% else %}
+                    <span style="color:#ff9800;background:rgba(255,152,0,0.1);padding:.3rem .7rem;border-radius:20px;">⏳ Pendente</span>
+                    {% endif %}
+                </td>
+                <td style="padding:1rem;">
+                    <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+                        {% if b.status != 'pago' %}
+                        <form action="{{ url_for('pay_bill', bid=b.id) }}" method="POST" style="display:inline;">
+                            <button type="submit" class="btn" style="padding:.4rem .8rem;background:#2e7d32;color:white;font-size:.85rem;"><i class="fa-solid fa-check"></i> Pagar</button>
+                        </form>
+                        {% endif %}
+                        <a href="{{ url_for('edit_bill', bid=b.id) }}" class="btn" style="padding:.4rem .8rem;background:var(--primary);color:var(--bg-dark);font-size:.85rem;text-decoration:none;"><i class="fa-solid fa-pen"></i></a>
+                        <form action="{{ url_for('delete_bill', bid=b.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja apagar esta conta?')">
+                            <button type="submit" class="btn" style="padding:.4rem .8rem;background:#c62828;color:white;font-size:.85rem;"><i class="fa-solid fa-trash"></i></button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" style="padding:2rem;text-align:center;color:var(--text-muted);">Nenhuma conta cadastrada.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

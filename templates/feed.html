@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:2rem;">
+    <div>
+        <h1 style="color:var(--primary);margin:0;">Olá, {{ current_user.name.split()[0] }}! 👋</h1>
+        <p style="color:var(--text-muted);margin:.25rem 0 0;">Portal da Igreja Cristã Resplandecer</p>
+    </div>
+    <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
+        {% if pastor_whatsapp %}
+        <a href="https://wa.me/{{ pastor_whatsapp }}" target="_blank" class="btn" style="background:#25D366;color:white;text-decoration:none;"><i class="fa-brands fa-whatsapp"></i> Pastor</a>
+        {% endif %}
+        {% if instagram %}
+        <a href="{{ instagram }}" target="_blank" class="btn" style="background:linear-gradient(45deg,#f09433,#dc2743,#bc1888);color:white;text-decoration:none;"><i class="fa-brands fa-instagram"></i> Instagram</a>
+        {% endif %}
+    </div>
+</div>
+
+{% if live_video_id %}
+<div class="card glass" style="margin-bottom:2rem;overflow:hidden;border:2px solid #ef5350;">
+    <div style="background:#ef5350;padding:.4rem 1rem;display:flex;align-items:center;gap:.5rem;">
+        <span style="width:9px;height:9px;border-radius:50%;background:white;animation:pulse 1.2s infinite;"></span>
+        <strong style="color:white;letter-spacing:1px;font-size:.9rem;">AO VIVO AGORA</strong>
+    </div>
+    <div style="position:relative;padding-bottom:56.25%;height:0;">
+        <iframe style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;"
+                src="https://www.youtube.com/embed/{{ live_video_id }}?autoplay=1"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </div>
+</div>
+{% endif %}
+
+{% if current_user.role in ['pastor','admin'] %}
+<div class="card glass" style="margin-bottom:2rem;">
+    <div id="trigger" onclick="document.getElementById('composer').style.display='block';this.style.display='none';"
+         style="display:flex;align-items:center;gap:1rem;cursor:pointer;">
+        <div style="width:40px;height:40px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:var(--bg-dark);font-weight:bold;flex-shrink:0;">{{ current_user.name[0].upper() }}</div>
+        <div style="flex:1;background:rgba(255,255,255,0.06);border:1px solid var(--glass-border);border-radius:25px;padding:.7rem 1.2rem;color:var(--text-muted);">O que você quer compartilhar?</div>
+    </div>
+
+    <form id="composer" action="{{ url_for('create_post') }}" method="POST" enctype="multipart/form-data" style="display:none;margin-top:1rem;">
+        <textarea name="content" class="form-control" rows="3" placeholder="Escreva uma mensagem (opcional)..." style="margin-bottom:1rem;resize:vertical;"></textarea>
+
+        <!-- Botões de tipo de mídia -->
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;">
+            <button type="button" onclick="showMedia('img')"  class="media-tab" data-tab="img"   style="padding:.5rem 1rem;border-radius:20px;border:1px solid var(--glass-border);background:rgba(255,255,255,0.07);color:var(--text-muted);cursor:pointer;"><i class="fa-solid fa-image"></i> Foto</button>
+            <button type="button" onclick="showMedia('vid')"  class="media-tab" data-tab="vid"   style="padding:.5rem 1rem;border-radius:20px;border:1px solid var(--glass-border);background:rgba(255,255,255,0.07);color:var(--text-muted);cursor:pointer;"><i class="fa-solid fa-video"></i> Vídeo</button>
+            <button type="button" onclick="showMedia('aud')"  class="media-tab" data-tab="aud"   style="padding:.5rem 1rem;border-radius:20px;border:1px solid var(--glass-border);background:rgba(255,255,255,0.07);color:var(--text-muted);cursor:pointer;"><i class="fa-solid fa-music"></i> Áudio</button>
+            <button type="button" onclick="showMedia('doc')"  class="media-tab" data-tab="doc"   style="padding:.5rem 1rem;border-radius:20px;border:1px solid var(--glass-border);background:rgba(255,255,255,0.07);color:var(--text-muted);cursor:pointer;"><i class="fa-solid fa-file"></i> Arquivo</button>
+            <button type="button" onclick="showMedia('link')" class="media-tab" data-tab="link"  style="padding:.5rem 1rem;border-radius:20px;border:1px solid var(--glass-border);background:rgba(255,255,255,0.07);color:var(--text-muted);cursor:pointer;"><i class="fa-solid fa-link"></i> Link</button>
+        </div>
+
+        <div id="panel-img"  class="media-panel" style="display:none;margin-bottom:1rem;"><input type="file" name="media_file" class="form-control" accept="image/*" onchange="localPreview(this,'img')"><div id="prev-img" style="margin-top:.5rem;"></div></div>
+        <div id="panel-vid"  class="media-panel" style="display:none;margin-bottom:1rem;"><input type="file" name="media_file" class="form-control" accept="video/*" onchange="localPreview(this,'vid')"><div id="prev-vid" style="margin-top:.5rem;"></div></div>
+        <div id="panel-aud"  class="media-panel" style="display:none;margin-bottom:1rem;"><input type="file" name="media_file" class="form-control" accept="audio/*" onchange="localPreview(this,'aud')"></div>
+        <div id="panel-doc"  class="media-panel" style="display:none;margin-bottom:1rem;"><input type="file" name="media_file" class="form-control"></div>
+        <div id="panel-link" class="media-panel" style="display:none;margin-bottom:1rem;"><input type="url" name="media_url" class="form-control" placeholder="https://..." oninput="previewUrl(this.value)"><div id="prev-link" style="margin-top:.5rem;"></div></div>
+
+        <div style="display:flex;gap:.75rem;">
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i> Publicar</button>
+            <button type="button" class="btn" style="background:rgba(255,255,255,0.08);color:var(--text-muted);" onclick="document.getElementById('composer').style.display='none';document.getElementById('trigger').style.display='flex';">Cancelar</button>
+        </div>
+    </form>
+</div>
+{% endif %}
+
+{% for post in posts %}
+<div class="card glass" id="post-{{ post.id }}" style="margin-bottom:1.5rem;overflow:hidden;">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:1.2rem 1.5rem 0;">
+        <div style="display:flex;align-items:center;gap:.85rem;">
+            <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--primary),#b8860b);display:flex;align-items:center;justify-content:center;color:var(--bg-dark);font-weight:bold;font-size:1.1rem;flex-shrink:0;">{{ post.author.name[0].upper() }}</div>
+            <div>
+                <div style="display:flex;align-items:center;gap:.4rem;">
+                    <strong style="color:var(--text-main);">{{ post.author.name }}</strong>
+                    {% if post.author.role == 'pastor' %}<i class="fa-solid fa-circle-check" style="color:var(--primary);font-size:.8rem;"></i>{% endif %}
+                </div>
+                <span style="font-size:.78rem;color:var(--text-muted);">{{ post.created_at.strftime('%d/%m/%Y às %H:%M') }}</span>
+            </div>
+        </div>
+        {% if post.user_id == current_user.id or current_user.role == 'admin' %}
+        <div style="position:relative;">
+            <button onclick="toggleMenu({{ post.id }})" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.2rem;padding:.3rem .6rem;border-radius:8px;"><i class="fa-solid fa-ellipsis"></i></button>
+            <div id="menu-{{ post.id }}" style="display:none;position:absolute;right:0;top:2.2rem;background:#1e2235;border:1px solid var(--glass-border);border-radius:10px;min-width:150px;z-index:50;overflow:hidden;">
+                <button onclick="openEdit({{ post.id }})" style="display:flex;align-items:center;gap:.6rem;width:100%;padding:.75rem 1rem;background:none;border:none;color:var(--text-main);cursor:pointer;"><i class="fa-solid fa-pen" style="color:var(--primary);"></i> Editar</button>
+                <form action="{{ url_for('delete_post', post_id=post.id) }}" method="POST" onsubmit="return confirm('Apagar?')">
+                    <button type="submit" style="display:flex;align-items:center;gap:.6rem;width:100%;padding:.75rem 1rem;background:none;border:none;color:#ef5350;cursor:pointer;border-top:1px solid var(--glass-border);"><i class="fa-solid fa-trash"></i> Apagar</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Texto -->
+    {% if post.content %}
+    <div id="view-{{ post.id }}" style="padding:1rem 1.5rem;">
+        <p style="color:var(--text-main);line-height:1.65;white-space:pre-wrap;margin:0;">{{ post.content }}</p>
+    </div>
+    {% else %}
+    <div id="view-{{ post.id }}" style="padding:.5rem 1.5rem 0;"></div>
+    {% endif %}
+
+    <!-- Edição inline -->
+    {% if post.user_id == current_user.id or current_user.role == 'admin' %}
+    <div id="edit-{{ post.id }}" style="display:none;padding:0 1.5rem 1rem;">
+        <form action="{{ url_for('edit_post', post_id=post.id) }}" method="POST" enctype="multipart/form-data">
+            <textarea name="content" class="form-control" rows="3" style="margin-bottom:.5rem;">{{ post.content or '' }}</textarea>
+            <input type="file" name="media_file" class="form-control" style="margin-bottom:.5rem;">
+            <input type="url" name="media_url" class="form-control" value="{{ post.media_url or '' }}" placeholder="URL (YouTube, link...)" style="margin-bottom:.5rem;">
+            <div style="display:flex;gap:.5rem;">
+                <button type="submit" class="btn btn-primary" style="padding:.4rem .9rem;font-size:.85rem;"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
+                <button type="button" onclick="closeEdit({{ post.id }})" class="btn" style="padding:.4rem .9rem;font-size:.85rem;background:rgba(255,255,255,0.08);color:var(--text-muted);">Cancelar</button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Mídia -->
+    {% if post.file_path %}
+        {% if post.file_type == 'image' %}
+        <img src="{{ url_for('static', filename=post.file_path) }}" alt="{{ post.file_name }}" style="width:100%;max-height:500px;object-fit:cover;display:block;">
+        {% elif post.file_type == 'video' %}
+        <video controls style="width:100%;max-height:420px;background:#000;display:block;">
+            <source src="{{ url_for('static', filename=post.file_path) }}">
+        </video>
+        {% elif post.file_type == 'audio' %}
+        <div style="padding:1rem 1.5rem;">
+            <div style="background:rgba(212,175,55,0.1);border:1px solid var(--glass-border);border-radius:12px;padding:1rem;display:flex;align-items:center;gap:1rem;">
+                <i class="fa-solid fa-music" style="font-size:2rem;color:var(--primary);"></i>
+                <div style="flex:1;">
+                    <p style="margin:0 0 .5rem;color:var(--text-main);font-size:.9rem;">{{ post.file_name }}</p>
+                    <audio controls style="width:100%;">
+                        <source src="{{ url_for('static', filename=post.file_path) }}">
+                    </audio>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div style="padding:1rem 1.5rem;">
+            <a href="{{ url_for('static', filename=post.file_path) }}" download="{{ post.file_name }}"
+               style="display:flex;align-items:center;gap:1rem;background:rgba(255,255,255,0.06);border:1px solid var(--glass-border);border-radius:12px;padding:1rem;text-decoration:none;color:var(--text-main);transition:background .2s;">
+                <i class="fa-solid fa-file-arrow-down" style="font-size:2rem;color:var(--primary);"></i>
+                <div>
+                    <p style="margin:0;font-weight:600;">{{ post.file_name }}</p>
+                    <p style="margin:0;font-size:.8rem;color:var(--text-muted);">Clique para baixar</p>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+    {% elif post.media_url %}
+        {% if post.file_type == 'youtube' or 'youtube.com' in post.media_url or 'youtu.be' in post.media_url %}
+            {% if 'v=' in post.media_url %}{% set yt_id = post.media_url.split('v=')[1].split('&')[0] %}{% else %}{% set yt_id = post.media_url.split('/')[-1] %}{% endif %}
+            <div style="position:relative;padding-bottom:56.25%;height:0;">
+                <iframe style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;" src="https://www.youtube.com/embed/{{ yt_id }}" allowfullscreen></iframe>
+            </div>
+        {% else %}
+        <div style="padding:0 1.5rem 1rem;">
+            <a href="{{ post.media_url }}" target="_blank" rel="noopener"
+               style="display:flex;align-items:center;gap:.75rem;background:rgba(255,255,255,0.06);border:1px solid var(--glass-border);border-radius:12px;padding:1rem;text-decoration:none;color:var(--text-main);">
+                <i class="fa-solid fa-arrow-up-right-from-square" style="color:var(--primary);font-size:1.4rem;"></i>
+                <div style="overflow:hidden;">
+                    <p style="margin:0;font-size:.85rem;color:var(--primary);font-weight:600;">Link externo</p>
+                    <p style="margin:0;font-size:.8rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ post.media_url }}</p>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+    {% endif %}
+
+    <!-- Contadores -->
+    <div style="display:flex;align-items:center;padding:.5rem 1.5rem;border-top:1px solid rgba(255,255,255,0.05);">
+        <span id="like-count-{{ post.id }}" style="font-size:.85rem;color:var(--text-muted);">
+            {% if post.likes|length > 0 %}<i class="fa-solid fa-heart" style="color:#ef5350;"></i> {{ post.likes|length }}{% endif %}
+        </span>
+        <span style="font-size:.85rem;color:var(--text-muted);margin-left:auto;">
+            {% if post.comments|length > 0 %}{{ post.comments|length }} comentário{{ 's' if post.comments|length != 1 }}{% endif %}
+        </span>
+    </div>
+
+    <!-- Botões -->
+    <div style="display:flex;border-top:1px solid rgba(255,255,255,0.05);">
+        <button onclick="toggleLike({{ post.id }},this)" data-liked="{{ 'true' if current_user.id in post.likes|map(attribute='user_id')|list else 'false' }}"
+                style="flex:1;padding:.75rem;background:none;border:none;cursor:pointer;color:{% if current_user.id in post.likes|map(attribute='user_id')|list %}#ef5350{% else %}var(--text-muted){% endif %};font-size:.9rem;display:flex;align-items:center;justify-content:center;gap:.5rem;border-radius:0;">
+            <i id="like-icon-{{ post.id }}" class="fa-{% if current_user.id in post.likes|map(attribute='user_id')|list %}solid{% else %}regular{% endif %} fa-heart"></i> Curtir
+        </button>
+        <button onclick="toggleComments({{ post.id }})"
+                style="flex:1;padding:.75rem;background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.9rem;display:flex;align-items:center;justify-content:center;gap:.5rem;border-left:1px solid rgba(255,255,255,0.05);border-radius:0;">
+            <i class="fa-regular fa-comment"></i> Comentar
+        </button>
+    </div>
+
+    <!-- Comentários -->
+    <div id="comments-{{ post.id }}" style="display:none;">
+        {% for c in post.comments %}
+        <div style="display:flex;align-items:flex-start;gap:.75rem;padding:.75rem 1.5rem;border-top:1px solid rgba(255,255,255,0.04);">
+            <div style="width:30px;height:30px;border-radius:50%;background:rgba(212,175,55,0.15);display:flex;align-items:center;justify-content:center;color:var(--primary);font-weight:bold;font-size:.75rem;flex-shrink:0;">{{ c.author.name[0].upper() }}</div>
+            <div style="flex:1;">
+                <span style="color:var(--primary);font-size:.85rem;font-weight:600;">{{ c.author.name }}</span>
+                <span style="color:var(--text-muted);font-size:.75rem;margin-left:.5rem;">{{ c.created_at.strftime('%d/%m %H:%M') }}</span>
+                <p style="color:var(--text-main);margin:.25rem 0 0;font-size:.9rem;">{{ c.content }}</p>
+            </div>
+            {% if c.user_id == current_user.id or current_user.role in ['admin','pastor'] %}
+            <form action="{{ url_for('delete_comment', cid=c.id) }}" method="POST" onsubmit="return confirm('Apagar?')" style="flex-shrink:0;">
+                <button type="submit" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:.8rem;padding:.25rem;" title="Apagar"><i class="fa-solid fa-times"></i></button>
+            </form>
+            {% endif %}
+        </div>
+        {% endfor %}
+        <form action="{{ url_for('add_comment', post_id=post.id) }}" method="POST"
+              style="display:flex;gap:.75rem;padding:1rem 1.5rem;align-items:center;border-top:1px solid rgba(255,255,255,0.05);">
+            <div style="width:30px;height:30px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:var(--bg-dark);font-weight:bold;font-size:.75rem;flex-shrink:0;">{{ current_user.name[0].upper() }}</div>
+            <input type="text" name="content" class="form-control" placeholder="Comentário..." required style="flex:1;border-radius:20px;padding:.5rem 1rem;">
+            <button type="submit" class="btn btn-primary" style="padding:.5rem 1rem;border-radius:20px;"><i class="fa-solid fa-paper-plane"></i></button>
+        </form>
+    </div>
+</div>
+{% else %}
+<div class="card glass" style="text-align:center;padding:3rem;">
+    <i class="fa-solid fa-dove" style="font-size:3rem;color:var(--text-muted);margin-bottom:1rem;"></i>
+    <h3 style="color:var(--text-muted);">Nenhuma postagem ainda.</h3>
+</div>
+{% endfor %}
+
+<style>
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.media-tab.active{background:rgba(212,175,55,.2)!important;color:var(--primary)!important;border-color:var(--primary)!important;}
+</style>
+
+<script>
+function showMedia(tab) {
+    document.querySelectorAll('.media-panel').forEach(p=>p.style.display='none');
+    document.querySelectorAll('.media-tab').forEach(b=>b.classList.remove('active'));
+    const panel = document.getElementById('panel-'+tab);
+    const btn   = document.querySelector('[data-tab="'+tab+'"]');
+    if(panel) panel.style.display = 'block';
+    if(btn)   btn.classList.add('active');
+    // Limpa outros file inputs
+    document.querySelectorAll('.media-panel input[type=file]').forEach(i=>{if(i.closest('#panel-'+tab)===null) i.value='';});
+    document.querySelectorAll('.media-panel input[type=url]').forEach(i=>{if(i.closest('#panel-'+tab)===null) i.value='';});
+}
+function localPreview(input, type) {
+    const file = input.files[0]; if(!file) return;
+    const prevId = type==='img'?'prev-img':'prev-vid';
+    const prev = document.getElementById(prevId); if(!prev) return;
+    const url = URL.createObjectURL(file);
+    prev.innerHTML = type==='img'
+        ? `<img src="${url}" style="max-width:100%;max-height:250px;border-radius:10px;">`
+        : `<video src="${url}" controls style="max-width:100%;max-height:220px;border-radius:10px;"></video>`;
+}
+function previewUrl(url) {
+    const prev = document.getElementById('prev-link'); if(!prev) return;
+    if(!url){prev.innerHTML='';return;}
+    if(url.includes('youtube.com')||url.includes('youtu.be')){
+        const id = url.includes('v=') ? url.split('v=')[1].split('&')[0] : url.split('/').pop();
+        prev.innerHTML = `<div style="position:relative;padding-bottom:56.25%;height:0;margin-top:.5rem;"><iframe src="https://www.youtube.com/embed/${id}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-radius:10px;" allowfullscreen></iframe></div>`;
+    } else {
+        prev.innerHTML = `<p style="color:var(--text-muted);font-size:.85rem;"><i class="fa-solid fa-link"></i> ${url}</p>`;
+    }
+}
+function toggleLike(postId, btn) {
+    fetch(`/post/${postId}/like`,{method:'POST',headers:{'X-Requested-With':'XMLHttpRequest'}})
+    .then(r=>r.json()).then(data=>{
+        btn.dataset.liked = data.liked?'true':'false';
+        document.getElementById('like-icon-'+postId).className = data.liked?'fa-solid fa-heart':'fa-regular fa-heart';
+        btn.style.color = data.liked?'#ef5350':'var(--text-muted)';
+        const c = document.getElementById('like-count-'+postId);
+        c.innerHTML = data.total>0?`<i class="fa-solid fa-heart" style="color:#ef5350"></i> ${data.total}`:'';
+    }).catch(()=>{ window.location.href=`/post/${postId}/like`; });
+}
+function toggleComments(id){
+    const el=document.getElementById('comments-'+id);
+    const open=el.style.display==='block';
+    el.style.display=open?'none':'block';
+    if(!open) el.querySelector('input[name="content"]')?.focus();
+}
+function toggleMenu(id){
+    const m=document.getElementById('menu-'+id);
+    const was=m.style.display==='block';
+    document.querySelectorAll('[id^="menu-"]').forEach(x=>x.style.display='none');
+    m.style.display=was?'none':'block';
+}
+document.addEventListener('click',e=>{
+    if(!e.target.closest('[id^="menu-"]')&&!e.target.closest('button[onclick^="toggleMenu"]'))
+        document.querySelectorAll('[id^="menu-"]').forEach(x=>x.style.display='none');
+});
+function openEdit(id){
+    document.getElementById('view-'+id).style.display='none';
+    document.getElementById('edit-'+id).style.display='block';
+    document.getElementById('menu-'+id).style.display='none';
+}
+function closeEdit(id){
+    document.getElementById('view-'+id).style.display='block';
+    document.getElementById('edit-'+id).style.display='none';
+}
+const hash=window.location.hash;
+if(hash&&hash.startsWith('#post-')){
+    const el=document.querySelector(hash);
+    if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.style.outline='2px solid var(--primary)';}
+}
+</script>
+{% endblock %}

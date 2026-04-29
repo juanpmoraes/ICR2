@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="margin-bottom:2rem;">
+    <a href="{{ url_for('members') }}" style="color:var(--primary);text-decoration:none;"><i class="fa-solid fa-arrow-left"></i> Voltar para Membros</a>
+    <h1 style="color:var(--primary);margin-top:.5rem;"><i class="fa-solid fa-user-pen"></i> Editar Usuário</h1>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;max-width:900px;">
+
+    <!-- Editar dados -->
+    <div class="card glass">
+        <h3 style="color:var(--primary);margin-bottom:1.5rem;"><i class="fa-solid fa-circle-info"></i> Informações</h3>
+        <form method="POST" action="{{ url_for('edit_user', uid=u.id) }}">
+            <div class="form-group">
+                <label>Nome Completo</label>
+                <input type="text" name="name" class="form-control" value="{{ u.name }}" required>
+            </div>
+            <div class="form-group">
+                <label>E-mail</label>
+                <input type="email" name="email" class="form-control" value="{{ u.email }}" required>
+            </div>
+            <div class="form-group">
+                <label>Cargo / Papel</label>
+                <select name="role" class="form-control" style="appearance:none;background:rgba(0,0,0,0.3);">
+                    <option value="membro"  {% if u.role == 'membro'  %}selected{% endif %} style="color:black;">Membro</option>
+                    <option value="admin"   {% if u.role == 'admin'   %}selected{% endif %} style="color:black;">Admin</option>
+                    <option value="pastor"  {% if u.role == 'pastor'  %}selected{% endif %} style="color:black;">Pastor</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Salvar Alterações</button>
+        </form>
+    </div>
+
+    <!-- Reset de senha -->
+    <div class="card glass">
+        <h3 style="color:var(--primary);margin-bottom:1.5rem;"><i class="fa-solid fa-key"></i> Redefinição de Senha</h3>
+        <p style="color:var(--text-muted);margin-bottom:1.5rem;line-height:1.6;">
+            Ao clicar abaixo, <strong style="color:var(--text-main);">{{ u.name }}</strong> será obrigado a definir uma nova senha na próxima vez que fizer login.
+        </p>
+
+        {% if u.must_reset_password %}
+        <div class="alert alert-info" style="margin-bottom:1.5rem;">
+            <i class="fa-solid fa-clock"></i> Redefinição já está pendente para este usuário.
+        </div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('reset_user_password', uid=u.id) }}"
+              onsubmit="return confirm('Tem certeza? {{ u.name }} precisará criar uma nova senha no próximo login.')">
+            <button type="submit" class="btn" style="background:#c62828;color:white;width:100%;">
+                <i class="fa-solid fa-rotate-left"></i> Forçar Redefinição de Senha
+            </button>
+        </form>
+
+        <div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--glass-border);">
+            <h4 style="color:var(--text-muted);font-size:.85rem;margin-bottom:1rem;">INFORMAÇÕES DA CONTA</h4>
+            <p style="color:var(--text-muted);font-size:.9rem;">
+                <i class="fa-solid fa-calendar"></i> Membro desde: {{ u.created_at.strftime('%d/%m/%Y') }}<br>
+                <i class="fa-solid fa-id-badge"></i> ID: #{{ u.id }}<br>
+                <i class="fa-solid fa-circle {% if u.must_reset_password %}text-warning{% else %}text-success{% endif %}"></i>
+                Status: {% if u.must_reset_password %}<span style="color:#ff9800;">Reset pendente</span>{% else %}<span style="color:#4caf50;">Normal</span>{% endif %}
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

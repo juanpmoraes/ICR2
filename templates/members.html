@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;">
+    <div>
+        <h1 style="color:var(--primary);"><i class="fa-solid fa-users"></i> Membros</h1>
+        <p style="color:var(--text-muted);">{{ users|length }} membros cadastrados</p>
+    </div>
+</div>
+
+<div class="card glass">
+    <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;min-width:700px;">
+            <thead>
+                <tr style="border-bottom:1px solid var(--glass-border);">
+                    <th style="padding:1rem;text-align:left;color:var(--primary);">#</th>
+                    <th style="padding:1rem;text-align:left;color:var(--primary);">Nome</th>
+                    <th style="padding:1rem;text-align:left;color:var(--primary);">E-mail</th>
+                    <th style="padding:1rem;text-align:left;color:var(--primary);">Cargo</th>
+                    <th style="padding:1rem;text-align:left;color:var(--primary);">Status</th>
+                    <th style="padding:1rem;text-align:left;color:var(--primary);">Adesão</th>
+                    <th style="padding:1rem;text-align:left;color:var(--primary);">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:1rem;color:var(--text-muted);">{{ u.id }}</td>
+                    <td style="padding:1rem;">
+                        <div style="display:flex;align-items:center;gap:.75rem;">
+                            <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:var(--bg-dark);font-weight:bold;flex-shrink:0;">
+                                {{ u.name[0].upper() }}
+                            </div>
+                            {{ u.name }}
+                        </div>
+                    </td>
+                    <td style="padding:1rem;">{{ u.email }}</td>
+                    <td style="padding:1rem;">
+                        {% if u.role == 'pastor' %}
+                        <span style="background:rgba(212,175,55,0.2);color:var(--primary);padding:.3rem .8rem;border-radius:20px;font-size:.85rem;font-weight:600;"><i class="fa-solid fa-star"></i> Pastor</span>
+                        {% elif u.role == 'admin' %}
+                        <span style="background:rgba(239,83,80,0.15);color:#ef5350;padding:.3rem .8rem;border-radius:20px;font-size:.85rem;font-weight:600;"><i class="fa-solid fa-shield-halved"></i> Admin</span>
+                        {% else %}
+                        <span style="background:rgba(255,255,255,0.05);color:var(--text-muted);padding:.3rem .8rem;border-radius:20px;font-size:.85rem;"><i class="fa-solid fa-user"></i> Membro</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:1rem;">
+                        {% if u.must_reset_password %}
+                        <span style="color:#ff9800;font-size:.85rem;"><i class="fa-solid fa-key"></i> Reset pendente</span>
+                        {% else %}
+                        <span style="color:#4caf50;font-size:.85rem;"><i class="fa-solid fa-circle-check"></i> Normal</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:1rem;color:var(--text-muted);">{{ u.created_at.strftime('%d/%m/%Y') }}</td>
+                    <td style="padding:1rem;">
+                        <a href="{{ url_for('edit_user', uid=u.id) }}" class="btn" style="padding:.4rem .9rem;background:var(--primary);color:var(--bg-dark);font-size:.85rem;text-decoration:none;">
+                            <i class="fa-solid fa-pen"></i> Editar
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

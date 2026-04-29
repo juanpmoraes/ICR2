@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="margin-bottom:2rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
+    <div>
+        <h1 style="color:var(--primary);"><i class="fa-solid fa-chart-line"></i> Controle Financeiro</h1>
+        <p style="color:var(--text-muted);">Dízimos, Ofertas, Gastos e Dívidas</p>
+    </div>
+    <div style="display:flex;gap:1rem;">
+        <a href="{{ url_for('add_transaction') }}" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Nova Transação</a>
+        <a href="{{ url_for('reports') }}" class="btn" style="background:rgba(255,255,255,0.1);color:var(--text-main);text-decoration:none;"><i class="fa-solid fa-chart-pie"></i> Relatórios</a>
+    </div>
+</div>
+
+<div class="finance-grid">
+    <div class="card glass stat-card" style="border-top:4px solid #2e7d32;">
+        <h3>Dízimos</h3>
+        <h2 style="color:#4caf50;">R$ {{ "%.2f"|format(total_dizimos) }}</h2>
+    </div>
+    <div class="card glass stat-card" style="border-top:4px solid var(--primary);">
+        <h3>Ofertas</h3>
+        <h2>R$ {{ "%.2f"|format(total_ofertas) }}</h2>
+    </div>
+    <div class="card glass stat-card" style="border-top:4px solid #00897b;">
+        <h3>Entradas Avulsas</h3>
+        <h2 style="color:#26a69a;">R$ {{ "%.2f"|format(total_entradas) }}</h2>
+    </div>
+    <div class="card glass stat-card" style="border-top:4px solid #f57c00;">
+        <h3>Gastos</h3>
+        <h2 style="color:#ff9800;">R$ {{ "%.2f"|format(total_gastos) }}</h2>
+    </div>
+    <div class="card glass stat-card" style="border-top:4px solid #c62828;">
+        <h3>Dívidas</h3>
+        <h2 style="color:#ef5350;">R$ {{ "%.2f"|format(total_dividas) }}</h2>
+    </div>
+</div>
+
+<div class="card glass" style="text-align:center;margin-bottom:2rem;border:2px solid {{ '#2e7d32' if saldo >= 0 else '#c62828' }};">
+    <h3 style="color:var(--text-muted);">Saldo Atual</h3>
+    <h1 style="font-size:3rem;color:{{ '#4caf50' if saldo >= 0 else '#ef5350' }};">R$ {{ "%.2f"|format(saldo) }}</h1>
+</div>
+
+<div class="card glass">
+    <h3 style="color:var(--primary);margin-bottom:1rem;">Histórico de Transações</h3>
+    <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;min-width:700px;">
+            <thead>
+                <tr style="border-bottom:1px solid var(--glass-border);">
+                    <th style="padding:1rem;text-align:left;">Data</th>
+                    <th style="padding:1rem;text-align:left;">Tipo</th>
+                    <th style="padding:1rem;text-align:left;">Descrição</th>
+                    <th style="padding:1rem;text-align:left;">Valor</th>
+                    <th style="padding:1rem;text-align:left;">Status</th>
+                    <th style="padding:1rem;text-align:left;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in transactions %}
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:1rem;">{{ t.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                    <td style="padding:1rem;text-transform:capitalize;">{{ t.type }}</td>
+                    <td style="padding:1rem;">{{ t.description or '-' }}</td>
+                    <td style="padding:1rem;font-weight:bold;color:{% if t.type in ['dizimo','oferta','entrada'] %}#4caf50{% else %}#ef5350{% endif %};">
+                        {% if t.type in ['dizimo','oferta','entrada'] %}+{% else %}-{% endif %}R$ {{ "%.2f"|format(t.amount) }}
+                    </td>
+                    <td style="padding:1rem;">
+                        {% if t.status == 'completed' %}
+                        <span style="color:#4caf50;">✓ Completo</span>
+                        {% else %}
+                        <span style="color:var(--text-muted);">⏳ Pendente</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:1rem;">
+                        <div style="display:flex;gap:.5rem;">
+                            <a href="{{ url_for('edit_transaction', tid=t.id) }}" class="btn" style="padding:.4rem .8rem;background:var(--primary);color:var(--bg-dark);font-size:.85rem;text-decoration:none;"><i class="fa-solid fa-pen"></i></a>
+                            <form action="{{ url_for('delete_transaction', tid=t.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Remover esta transação?')">
+                                <button type="submit" class="btn" style="padding:.4rem .8rem;background:#c62828;color:white;font-size:.85rem;"><i class="fa-solid fa-trash"></i></button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" style="padding:2rem;text-align:center;color:var(--text-muted);">Nenhuma transação encontrada.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

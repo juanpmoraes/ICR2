@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block auth_content %}
+<div class="card glass" style="width: 400px;">
+    <h2 class="card-title text-center" style="text-align: center;">Entrar</h2>
+    <form method="POST" action="">
+        <div class="form-group">
+            <label for="email">E-mail</label>
+            <input type="email" id="email" name="email" class="form-control" required placeholder="seu@email.com">
+        </div>
+        <div class="form-group">
+            <label for="password">Senha</label>
+            <input type="password" id="password" name="password" class="form-control" required placeholder="Sua senha secreta">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Entrar</button>
+    </form>
+    <div style="text-align: center; margin-top: 1.5rem;">
+        <small style="color: var(--text-muted);">Não tem uma conta? <a href="{{ url_for('register') }}" style="color: var(--primary);">Cadastre-se</a></small>
+    </div>
+</div>
+{% endblock %}

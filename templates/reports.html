@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="margin-bottom:2rem;display:flex;justify-content:space-between;align-items:center;">
+    <div>
+        <h1 style="color:var(--primary);"><i class="fa-solid fa-file-invoice-dollar"></i> Relatórios Financeiros</h1>
+        <p style="color:var(--text-muted);">Visão completa das finanças da igreja</p>
+    </div>
+    <a href="{{ url_for('finance') }}" class="btn btn-primary"><i class="fa-solid fa-list"></i> Ver Extrato</a>
+</div>
+
+<!-- KPIs -->
+<div class="finance-grid" style="margin-bottom:2rem;">
+    <div class="card glass stat-card" style="border-top:4px solid #2e7d32;">
+        <h3><i class="fa-solid fa-arrow-trend-up"></i> Total Entradas</h3>
+        <h2 style="color:#4caf50;">R$ {{ "%.2f"|format(total_dizimos + total_ofertas) }}</h2>
+        <small style="color:var(--text-muted);">Dízimos + Ofertas</small>
+    </div>
+    <div class="card glass stat-card" style="border-top:4px solid #c62828;">
+        <h3><i class="fa-solid fa-arrow-trend-down"></i> Total Saídas</h3>
+        <h2 style="color:#ef5350;">R$ {{ "%.2f"|format(total_gastos + total_dividas) }}</h2>
+        <small style="color:var(--text-muted);">Gastos + Dívidas</small>
+    </div>
+    <div class="card glass stat-card" style="border-top:4px solid {{ '#2e7d32' if saldo >= 0 else '#c62828' }};">
+        <h3><i class="fa-solid fa-scale-balanced"></i> Saldo</h3>
+        <h2 style="color:{{ '#4caf50' if saldo >= 0 else '#ef5350' }};">R$ {{ "%.2f"|format(saldo) }}</h2>
+        <small style="color:var(--text-muted);">Entradas - Saídas</small>
+    </div>
+    <div class="card glass stat-card" style="border-top:4px solid #f57c00;">
+        <h3><i class="fa-solid fa-clock"></i> Contas Pendentes</h3>
+        <h2 style="color:#ff9800;">R$ {{ "%.2f"|format(total_bills_pend) }}</h2>
+        <small style="color:var(--text-muted);">A vencer / Atrasadas</small>
+    </div>
+</div>
+
+<!-- Breakdown -->
+<div class="finance-grid" style="margin-bottom:2rem;">
+    <div class="card glass stat-card">
+        <h3>Dízimos</h3>
+        <h2>R$ {{ "%.2f"|format(total_dizimos) }}</h2>
+    </div>
+    <div class="card glass stat-card">
+        <h3>Ofertas</h3>
+        <h2>R$ {{ "%.2f"|format(total_ofertas) }}</h2>
+    </div>
+    <div class="card glass stat-card">
+        <h3>Gastos</h3>
+        <h2 style="color:#ef5350;">R$ {{ "%.2f"|format(total_gastos) }}</h2>
+    </div>
+    <div class="card glass stat-card">
+        <h3>Dívidas</h3>
+        <h2 style="color:#ef5350;">R$ {{ "%.2f"|format(total_dividas) }}</h2>
+    </div>
+</div>
+
+<!-- Gráfico de Linha: Entradas x Saídas mensais -->
+<div class="card glass" style="margin-bottom:2rem;">
+    <h3 style="color:var(--primary);margin-bottom:1rem;"><i class="fa-solid fa-chart-line"></i> Entradas vs Saídas (últimos 12 meses)</h3>
+    <canvas id="lineChart" height="100"></canvas>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:2rem;">
+    <!-- Gráfico Pizza: Distribuição -->
+    <div class="card glass">
+        <h3 style="color:var(--primary);margin-bottom:1rem;"><i class="fa-solid fa-chart-pie"></i> Distribuição</h3>
+        <canvas id="pieChart" height="220"></canvas>
+    </div>
+    <!-- Gráfico Barras: Contas por categoria -->
+    <div class="card glass">
+        <h3 style="color:var(--primary);margin-bottom:1rem;"><i class="fa-solid fa-chart-bar"></i> Contas por Categoria</h3>
+        <canvas id="barChart" height="220"></canvas>
+    </div>
+</div>
+
+<!-- Tabela de transações recentes -->
+<div class="card glass">
+    <h3 style="color:var(--primary);margin-bottom:1rem;"><i class="fa-solid fa-table"></i> Últimas 20 Transações</h3>
+    <table style="width:100%;border-collapse:collapse;">
+        <thead>
+            <tr style="border-bottom:1px solid var(--glass-border);">
+                <th style="padding:.75rem;color:var(--primary);">Data</th>
+                <th style="padding:.75rem;color:var(--primary);">Tipo</th>
+                <th style="padding:.75rem;color:var(--primary);">Descrição</th>
+                <th style="padding:.75rem;color:var(--primary);">Valor</th>
+                <th style="padding:.75rem;color:var(--primary);">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in transactions[-20:]|reverse %}
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                <td style="padding:.75rem;">{{ t.created_at.strftime('%d/%m/%Y') }}</td>
+                <td style="padding:.75rem;text-transform:capitalize;">{{ t.type }}</td>
+                <td style="padding:.75rem;">{{ t.description or '-' }}</td>
+                <td style="padding:.75rem;font-weight:bold;color:{% if t.type in ['dizimo','oferta'] %}#4caf50{% else %}#ef5350{% endif %};">
+                    {% if t.type in ['dizimo','oferta'] %}+{% else %}-{% endif %}R$ {{ "%.2f"|format(t.amount) }}
+                </td>
+                <td style="padding:.75rem;">
+                    {% if t.status == 'completed' %}<span style="color:#4caf50;">✓ Completo</span>
+                    {% else %}<span style="color:var(--text-muted);">⏳ Pendente</span>{% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" style="padding:1rem;text-align:center;color:var(--text-muted);">Nenhuma transação.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const chartDefaults = {
+    color: '#f0f0f0',
+    borderColor: 'rgba(255,255,255,0.1)',
+};
+Chart.defaults.color = '#a0a0b0';
+
+// Linha
+new Chart(document.getElementById('lineChart'), {
+    type: 'line',
+    data: {
+        labels: {{ chart_labels | tojson }},
+        datasets: [
+            {
+                label: 'Entradas (R$)',
+                data: {{ chart_entrada | tojson }},
+                borderColor: '#4caf50',
+                backgroundColor: 'rgba(76,175,80,0.15)',
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#4caf50',
+            },
+            {
+                label: 'Saídas (R$)',
+                data: {{ chart_saida | tojson }},
+                borderColor: '#ef5350',
+                backgroundColor: 'rgba(239,83,80,0.15)',
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#ef5350',
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: '#f0f0f0' } } },
+        scales: {
+            x: { ticks: { color: '#a0a0b0' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+            y: { ticks: { color: '#a0a0b0', callback: v => 'R$ '+v }, grid: { color: 'rgba(255,255,255,0.05)' } }
+        }
+    }
+});
+
+// Pizza
+new Chart(document.getElementById('pieChart'), {
+    type: 'doughnut',
+    data: {
+        labels: {{ pie_labels | tojson }},
+        datasets: [{
+            data: {{ pie_data | tojson }},
+            backgroundColor: ['#d4af37','#4caf50','#ef5350','#ff9800'],
+            borderColor: '#0f111a',
+            borderWidth: 3,
+        }]
+    },
+    options: {
+        plugins: { legend: { position: 'bottom', labels: { color: '#f0f0f0', padding: 15 } } }
+    }
+});
+
+// Barras
+new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+        labels: {{ cat_labels | tojson }},
+        datasets: [{
+            label: 'Total (R$)',
+            data: {{ cat_values | tojson }},
+            backgroundColor: 'rgba(212,175,55,0.6)',
+            borderColor: '#d4af37',
+            borderWidth: 2,
+            borderRadius: 8,
+        }]
+    },
+    options: {
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { ticks: { color: '#a0a0b0' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+            y: { ticks: { color: '#a0a0b0', callback: v => 'R$'+v }, grid: { color: 'rgba(255,255,255,0.05)' } }
+        }
+    }
+});
+</script>
+{% endblock %}

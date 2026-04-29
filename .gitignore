@@ -1,0 +1,7 @@
+.env
+.venv
+venv
+instance
+
+# SQLAlchemy 
+.sqlite

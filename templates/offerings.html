@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="header-section" style="margin-bottom: 2rem;">
+    <h1 style="color: var(--primary);"><i class="fa-solid fa-hand-holding-dollar"></i> Dízimos e Ofertas</h1>
+    <p style="color: var(--text-muted);">"Honra ao Senhor com os teus bens, e com a primeira parte de todos os teus ganhos." - Provérbios 3:9</p>
+</div>
+
+<div class="card glass">
+    <h3 style="color: var(--primary); margin-bottom: 1rem;">Contribuir via PIX</h3>
+    <form method="POST" action="">
+        <div class="form-group">
+            <label for="type">Tipo de Contribuição</label>
+            <select name="type" id="type" class="form-control" required style="appearance: none; background-color: rgba(0,0,0,0.2);">
+                <option value="dizimo" style="color: black;">Dízimo</option>
+                <option value="oferta" style="color: black;">Oferta</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="amount">Valor (R$)</label>
+            <input type="number" step="0.01" min="1" id="amount" name="amount" class="form-control" required placeholder="50.00">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;"><i class="fa-brands fa-pix"></i> Gerar PIX</button>
+    </form>
+</div>
+
+{% if qr_code_base64 %}
+<div class="card glass text-center" style="text-align: center;">
+    <h3 style="color: var(--success); margin-bottom: 1rem;">Escaneie o QR Code para pagar</h3>
+    <div class="qr-container">
+        <img src="data:image/png;base64,{{ qr_code_base64 }}" alt="QR Code PIX">
+    </div>
+    <div class="form-group" style="margin-top: 1rem;">
+        <label>Ou copie o código PIX:</label>
+        <div style="display: flex; gap: 0.5rem;">
+            <input type="text" class="form-control" value="{{ qr_code }}" id="pixCode" readonly>
+            <button class="btn btn-primary" onclick="copyPix()"><i class="fa-regular fa-copy"></i> Copiar</button>
+        </div>
+    </div>
+</div>
+<script>
+function copyPix() {
+    var copyText = document.getElementById("pixCode");
+    copyText.select();
+    copyText.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(copyText.value);
+    alert("Código PIX copiado!");
+}
+</script>
+{% endif %}
+
+{% endblock %}

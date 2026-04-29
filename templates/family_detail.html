@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% macro tree_node(member, fid) %}
+<li>
+    <div class="tree-node {% if member.gender == 'masculino' %}node-male{% elif member.gender == 'feminino' %}node-female{% else %}node-other{% endif %}">
+        <div class="node-avatar">
+            {% if member.gender == 'feminino' %}
+                <i class="fa-solid fa-person-dress"></i>
+            {% else %}
+                <i class="fa-solid fa-person"></i>
+            {% endif %}
+        </div>
+        <div class="node-info">
+            <strong>{{ member.name }}</strong>
+            <span class="node-role">{{ member.role }}</span>
+            {% if member.birth_date %}
+            <span class="node-birth"><i class="fa-solid fa-cake-candles"></i> {{ member.birth_date.strftime('%d/%m/%Y') }}</span>
+            {% endif %}
+            {% if member.user %}
+            <span class="node-linked"><i class="fa-solid fa-link"></i> {{ member.user.name }}</span>
+            {% endif %}
+        </div>
+        <div class="node-actions">
+            <a href="{{ url_for('edit_family_member', fid=fid, mid=member.id) }}" title="Editar"><i class="fa-solid fa-pen"></i></a>
+            <a href="{{ url_for('add_family_member', fid=fid) }}?parent={{ member.id }}" title="Adicionar filho"><i class="fa-solid fa-plus"></i></a>
+            <form action="{{ url_for('delete_family_member', fid=fid, mid=member.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Remover {{ member.name }}?')">
+                <button type="submit" title="Remover"><i class="fa-solid fa-trash"></i></button>
+            </form>
+        </div>
+    </div>
+    {% if member.children %}
+    <ul>
+        {% for child in member.children %}
+            {{ tree_node(child, fid) }}
+        {% endfor %}
+    </ul>
+    {% endif %}
+</li>
+{% endmacro %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:2rem;">
+    <div>
+        <a href="{{ url_for('families') }}" style="color:var(--primary);text-decoration:none;font-size:.9rem;"><i class="fa-solid fa-arrow-left"></i> Famílias</a>
+        <h1 style="color:var(--primary);margin:.25rem 0 0;">
+            <i class="fa-solid fa-people-roof"></i> Família {{ f.name }}
+        </h1>
+        {% if f.description %}<p style="color:var(--text-muted);">{{ f.description }}</p>{% endif %}
+        <p style="color:var(--text-muted);font-size:.85rem;">{{ f.tree|length }} pessoa(s) na árvore</p>
+    </div>
+    <div style="display:flex;gap:.75rem;">
+        <a href="{{ url_for('add_family_member', fid=f.id) }}" class="btn btn-primary" style="text-decoration:none;"><i class="fa-solid fa-user-plus"></i> Adicionar Pessoa</a>
+        <a href="{{ url_for('edit_family', fid=f.id) }}" class="btn" style="text-decoration:none;background:rgba(255,255,255,0.1);color:var(--text-main);"><i class="fa-solid fa-pen"></i> Editar</a>
+    </div>
+</div>
+
+{% if roots %}
+<div class="card glass tree-wrapper">
+    <div class="tree">
+        <ul>
+            {% for root in roots %}
+                {{ tree_node(root, f.id) }}
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% else %}
+<div class="card glass" style="text-align:center;padding:3rem;">
+    <i class="fa-solid fa-sitemap" style="font-size:3rem;color:var(--text-muted);margin-bottom:1rem;"></i>
+    <h3 style="color:var(--text-muted);">Árvore vazia. Adicione a primeira pessoa!</h3>
+</div>
+{% endif %}
+
+<style>
+/* ── Árvore Genealógica ── */
+.tree-wrapper { overflow-x: auto; padding: 2rem; }
+.tree { min-width: max-content; }
+.tree ul { padding-top: 20px; position: relative; display: flex; gap: 0; }
+.tree ul::before {
+    content: ''; display: block; position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: var(--glass-border);
+}
+.tree li {
+    list-style: none; display: flex; flex-direction: column;
+    align-items: center; padding: 0 20px; position: relative;
+}
+.tree li::before {
+    content: ''; width: 2px; height: 20px;
+    background: var(--glass-border); display: block;
+}
+.tree > ul { padding-top: 0; }
+.tree > ul > li::before { display: none; }
+.tree > ul::before { display: none; }
+
+.tree-node {
+    border-radius: 14px; padding: 1rem 1.2rem;
+    min-width: 160px; max-width: 200px;
+    display: flex; flex-direction: column; align-items: center;
+    gap: .4rem; text-align: center; position: relative;
+    border: 2px solid var(--glass-border);
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(8px);
+    transition: transform .2s, box-shadow .2s;
+    cursor: default;
+}
+.tree-node:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
+
+.node-male   { border-color: rgba(100,160,255,0.5); }
+.node-female { border-color: rgba(255,130,180,0.5); }
+.node-other  { border-color: var(--glass-border); }
+
+.node-avatar {
+    width: 48px; height: 48px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+}
+.node-male   .node-avatar { background: rgba(100,160,255,.15); color: #64a0ff; }
+.node-female .node-avatar { background: rgba(255,130,180,.15); color: #ff82b4; }
+.node-other  .node-avatar { background: rgba(212,175,55,.15);  color: var(--primary); }
+
+.node-info { display: flex; flex-direction: column; gap: .15rem; width: 100%; }
+.node-info strong { font-size: .95rem; color: var(--text-main); }
+.node-role   { font-size: .72rem; color: var(--primary); background: rgba(212,175,55,.1); border-radius: 20px; padding: .1rem .5rem; }
+.node-birth  { font-size: .7rem; color: var(--text-muted); }
+.node-linked { font-size: .7rem; color: #4caf50; }
+
+.node-actions {
+    display: flex; gap: .4rem; margin-top: .3rem;
+    opacity: 0; transition: opacity .2s;
+}
+.tree-node:hover .node-actions { opacity: 1; }
+.node-actions a, .node-actions button {
+    background: rgba(255,255,255,0.08); border: none;
+    color: var(--text-muted); border-radius: 6px;
+    padding: .25rem .5rem; cursor: pointer; font-size: .75rem;
+    text-decoration: none; transition: all .2s;
+}
+.node-actions a:hover { color: var(--primary); background: rgba(212,175,55,.15); }
+.node-actions button:hover { color: #ef5350; background: rgba(239,83,80,.1); }
+</style>
+{% endblock %}
