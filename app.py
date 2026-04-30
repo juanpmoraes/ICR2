@@ -220,6 +220,10 @@ def checkout_payment():
     mp_token = os.getenv('SAAS_MP_ACCESS_TOKEN')
     
     init_point = None
+    if not mp_token:
+        flash("ERRO: O Token do Mercado Pago (SAAS_MP_ACCESS_TOKEN) não foi encontrado nas variáveis de ambiente. Verifique o arquivo .env.", "danger")
+        print("ERRO MP: SAAS_MP_ACCESS_TOKEN é None ou vazio")
+        
     if mp_token:
         try:
             sdk = mercadopago.SDK(mp_token)
