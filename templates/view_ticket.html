@@ -6,15 +6,15 @@
     </a>
 </div>
 
-<div class="card glass" style="max-width:800px; margin:0 auto;">
-    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.5rem;">
+<div class="card glass" style="max-width:900px; margin:0 auto; padding:2rem;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:2rem;">
         <div>
             <h2 style="margin:0; color:var(--primary);">Chamado #{{ ticket.id }}: {{ ticket.subject }}</h2>
             <p style="margin:0.5rem 0 0 0; color:var(--text-muted); font-size:0.9rem;">
-                Aberto em {{ ticket.created_at.strftime('%d/%m/%Y às %H:%M') }} por {{ ticket.user.name }} ({{ ticket.church.name }})
+                Aberto por {{ ticket.user.name }} ({{ ticket.church.name }})
             </p>
         </div>
-        <span class="badge" style="
+        <span id="ticketStatus" class="badge" style="
             {% if ticket.status == 'aberto' %}background:#3b82f6;
             {% elif ticket.status == 'resolvido' %}background:#10b981;
             {% else %}background:#6b7280;{% endif %}
@@ -22,7 +22,8 @@
         ">{{ ticket.status|capitalize }}</span>
     </div>
 
-    <div style="display:flex; flex-direction:column; gap:1.5rem; margin-bottom:2rem;">
+    <!-- Container do Chat -->
+    <div id="chatContainer" style="display:flex; flex-direction:column; gap:1.5rem; margin-bottom:2rem; max-height:600px; overflow-y:auto; padding-right:1rem;">
         <!-- Mensagem Inicial -->
         <div style="background:rgba(255,255,255,0.03); padding:1.5rem; border-radius:15px; border:1px solid var(--glass-border); width:fit-content; max-width:85%; align-self:flex-start;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; gap:2rem;">
@@ -32,7 +33,6 @@
             <p style="margin:0; line-height:1.6; white-space:pre-wrap;">{{ ticket.message }}</p>
         </div>
 
-        <!-- Histórico de Conversa -->
         {% for msg in ticket.messages %}
             <div style="
                 padding:1.5rem; border-radius:15px; width:fit-content; max-width:85%;
@@ -49,78 +49,138 @@
                     <small style="color:var(--text-muted); font-size:0.75rem;">{{ msg.created_at.strftime('%d/%m %H:%M') }}</small>
                 </div>
                 <p style="margin:0; line-height:1.6; white-space:pre-wrap;">{{ msg.message }}</p>
+                {% if msg.image_url %}
+                    <img src="{{ url_for('static', filename=msg.image_url) }}" style="max-width:100%; border-radius:10px; margin-top:1rem; cursor:pointer;" onclick="window.open(this.src)">
+                {% endif %}
             </div>
         {% endfor %}
     </div>
 
+    <!-- Área de Resposta -->
+    <div id="replyArea">
     {% if current_user.is_superadmin %}
-    <hr style="border:0; border-top:1px solid var(--glass-border); margin:2rem 0;">
-    
-    {% if not ticket.assigned_to %}
-        <div style="text-align:center; margin-bottom:2rem;">
-            <form action="{{ url_for('view_ticket', tid=ticket.id) }}" method="POST">
-                <input type="hidden" name="action" value="assign">
-                <button type="submit" class="btn btn-primary" style="padding:1rem 2rem;">
-                    <i class="fa-solid fa-hand-holding-hand"></i> Assumir este Chamado e Responder
-                </button>
-            </form>
-            <p style="color:var(--text-muted); font-size:0.85rem; margin-top:0.5rem;">Ao assumir, você será o único responsável por este chamado.</p>
-        </div>
-    {% elif ticket.assigned_to == current_user.id %}
-        <div class="card glass" style="background:rgba(255,255,255,0.02);">
-            <h3 style="margin-top:0;">Enviar Resposta</h3>
-            <form action="{{ url_for('view_ticket', tid=ticket.id) }}" method="POST">
-                <input type="hidden" name="action" value="respond">
-                <div class="form-group">
-                    <label>Sua Resposta</label>
-                    <textarea name="response" class="form-control" rows="4" required placeholder="Escreva aqui sua resposta para o pastor..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Alterar Status</label>
-                    <select name="status" class="form-control">
-                        <option value="aberto" {% if ticket.status == 'aberto' %}selected{% endif %}>Aberto</option>
-                        <option value="em_analise" {% if ticket.status == 'em_analise' %}selected{% endif %}>Em Análise</option>
-                        <option value="resolvido" {% if ticket.status == 'resolvido' %}selected{% endif %}>Resolvido</option>
-                        <option value="fechado" {% if ticket.status == 'fechado' %}selected{% endif %}>Fechado</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn btn-primary" style="width:100%; margin-top:1rem;">Enviar Resposta</button>
-            </form>
-        </div>
-    {% else %}
-        <div style="text-align:center; padding:2rem; border:1px solid var(--glass-border); border-radius:10px; background:rgba(239, 68, 68, 0.05);">
-            <i class="fa-solid fa-lock" style="font-size:2rem; color:#ef4444; margin-bottom:1rem;"></i>
-            <h4 style="margin:0; color:#ef4444;">Acesso Restrito</h4>
-            <p style="color:var(--text-muted); margin-top:0.5rem;">Este chamado já está sendo atendido por <strong>{{ ticket.admin_assigned.name }}</strong>.</p>
-        </div>
-    {% endif %}
-    
-    {% elif current_user.role == 'pastor' %}
-        {% if ticket.status != 'fechado' and ticket.status != 'resolvido' %}
-            {% if ticket.response %}
-            <hr style="border:0; border-top:1px solid var(--glass-border); margin:2rem 0;">
-            <div class="card glass" style="background:rgba(255,255,255,0.02);">
-                <h3 style="margin-top:0;">Responder ao Suporte</h3>
+        {% if not ticket.assigned_to %}
+            <div style="text-align:center; padding:2rem; background:rgba(255,255,255,0.02); border-radius:15px; border:1px dashed var(--glass-border);">
                 <form action="{{ url_for('view_ticket', tid=ticket.id) }}" method="POST">
+                    <input type="hidden" name="action" value="assign">
+                    <button type="submit" class="btn btn-primary" style="padding:1rem 2rem;">
+                        <i class="fa-solid fa-hand-holding-hand"></i> Assumir este Chamado
+                    </button>
+                </form>
+            </div>
+        {% elif ticket.assigned_to == current_user.id %}
+            <div class="card glass" style="background:rgba(255,255,255,0.02); margin:0;">
+                <h3 style="margin-top:0;">Enviar Resposta</h3>
+                <form action="{{ url_for('view_ticket', tid=ticket.id) }}" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="respond">
                     <div class="form-group">
-                        <label>Sua Mensagem</label>
-                        <textarea name="message" class="form-control" rows="4" required placeholder="Digite sua resposta aqui..."></textarea>
+                        <textarea name="response" class="form-control" rows="3" placeholder="Escreva aqui..."></textarea>
+                    </div>
+                    <div style="display:flex; gap:1rem; align-items:center; margin-top:1rem;">
+                        <div style="flex:1;">
+                            <label style="font-size:0.8rem; color:var(--text-muted);">Anexar Imagem</label>
+                            <input type="file" name="image" class="form-control" accept="image/*" style="font-size:0.8rem;">
+                        </div>
+                        <div style="flex:1;">
+                            <label style="font-size:0.8rem; color:var(--text-muted);">Status</label>
+                            <select name="status" class="form-control" style="font-size:0.8rem;">
+                                <option value="aberto" {% if ticket.status == 'aberto' %}selected{% endif %}>Aberto</option>
+                                <option value="em_analise" {% if ticket.status == 'em_analise' %}selected{% endif %}>Em Análise</option>
+                                <option value="resolvido" {% if ticket.status == 'resolvido' %}selected{% endif %}>Resolvido</option>
+                                <option value="fechado" {% if ticket.status == 'fechado' %}selected{% endif %}>Fechado</option>
+                            </select>
+                        </div>
                     </div>
                     <button type="submit" class="btn btn-primary" style="width:100%; margin-top:1rem;">Enviar Mensagem</button>
                 </form>
             </div>
-            {% else %}
-            <div style="text-align:center; padding:2rem; border:1px dotted var(--glass-border); border-radius:10px; margin-top:2rem;">
-                <i class="fa-solid fa-clock-rotate-left" style="font-size:2rem; color:var(--text-muted); margin-bottom:1rem;"></i>
-                <p style="color:var(--text-muted); margin:0;">Aguardando a primeira resposta do suporte para liberar a réplica.</p>
-            </div>
-            {% endif %}
         {% else %}
-            <div style="text-align:center; padding:2rem; border:1px solid #10b98144; border-radius:10px; background:rgba(16, 185, 129, 0.05); margin-top:2rem;">
-                <i class="fa-solid fa-check-double" style="font-size:2rem; color:#10b981; margin-bottom:1rem;"></i>
-                <p style="color:#10b981; margin:0;">Este chamado foi finalizado. Caso precise de mais ajuda, abra um novo chamado.</p>
+            <div style="text-align:center; color:#ef4444; padding:1rem; border:1px solid #ef444444; border-radius:10px;">
+                Chamado sob os cuidados de {{ ticket.admin_assigned.name }}
             </div>
         {% endif %}
+    {% else %}
+        {% if ticket.status != 'fechado' and ticket.status != 'resolvido' %}
+            {% if ticket.response %}
+                <div class="card glass" style="background:rgba(255,255,255,0.02); margin:0;">
+                    <form action="{{ url_for('view_ticket', tid=ticket.id) }}" method="POST" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <textarea name="message" class="form-control" rows="3" placeholder="Sua resposta..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size:0.8rem; color:var(--text-muted);">Anexar Imagem</label>
+                            <input type="file" name="image" class="form-control" accept="image/*">
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width:100%;">Enviar Mensagem</button>
+                    </form>
+                </div>
+            {% else %}
+                <p style="text-align:center; color:var(--text-muted);">Aguardando primeira resposta do suporte...</p>
+            {% endif %}
+        {% else %}
+            <p style="text-align:center; color:#10b981;">Chamado Finalizado.</p>
+        {% endif %}
     {% endif %}
+    </div>
 </div>
+
+<script>
+    const tid = {{ ticket.id }};
+    const chatContainer = document.getElementById('chatContainer');
+    const currentUserId = {{ current_user.id }};
+
+    function scrollToBottom() {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    scrollToBottom();
+
+    async function updateChat() {
+        try {
+            const response = await fetch(`/support/ticket/${tid}/json`);
+            const data = await response.json();
+            
+            if (data.messages) {
+                let html = '';
+                data.messages.forEach((m, index) => {
+                    const isSuperadmin = m.is_admin;
+                    const align = isSuperadmin ? 'flex-end' : 'flex-start';
+                    const bg = isSuperadmin ? 'rgba(16, 185, 129, 0.05)' : 'rgba(255,255,255,0.03)';
+                    const border = isSuperadmin ? '1px solid #10b98144' : '1px solid var(--glass-border)';
+                    const color = isSuperadmin ? '#10b981' : 'var(--primary)';
+                    
+                    html += `
+                        <div style="padding:1.5rem; border-radius:15px; width:fit-content; max-width:85%; align-self:${align}; background:${bg}; border:${border};">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; gap:2rem;">
+                                <strong style="font-size:0.8rem; color:${color};">${m.user}</strong>
+                                <small style="color:var(--text-muted); font-size:0.75rem;">${m.created_at}</small>
+                            </div>
+                            <p style="margin:0; line-height:1.6; white-space:pre-wrap;">${m.message}</p>
+                            ${m.image ? `<img src="${m.image}" style="max-width:100%; border-radius:10px; margin-top:1rem; cursor:pointer;" onclick="window.open(this.src)">` : ''}
+                        </div>
+                    `;
+                });
+                
+                // Só atualiza se o conteúdo for diferente (para evitar flickering)
+                if (chatContainer.innerHTML.length !== html.length) {
+                    const wasAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop <= chatContainer.clientHeight + 100;
+                    chatContainer.innerHTML = html;
+                    if (wasAtBottom) scrollToBottom();
+                }
+            }
+            
+            // Atualiza status
+            const statusBadge = document.getElementById('ticketStatus');
+            if (statusBadge) {
+                statusBadge.innerText = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+            }
+            
+        } catch (error) {
+            console.error('Erro ao atualizar chat:', error);
+        }
+    }
+
+    // Polling a cada 3 segundos
+    setInterval(updateChat, 3000);
+</script>
 {% endblock %}

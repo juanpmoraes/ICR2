@@ -219,6 +219,7 @@ class SupportMessage(db.Model):
     ticket_id  = db.Column(db.Integer, db.ForeignKey('support_ticket.id'), nullable=False)
     user_id    = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     message    = db.Column(db.Text, nullable=False)
+    image_url  = db.Column(db.String(500), nullable=True) # Caminho da imagem anexada
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     ticket = db.relationship('SupportTicket', backref='messages')

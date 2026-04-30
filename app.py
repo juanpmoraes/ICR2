@@ -1,5 +1,5 @@
 import os, uuid, time
-from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, make_response
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_bcrypt import Bcrypt
@@ -38,6 +38,9 @@ app.config['MAX_CONTENT_LENGTH'] = 64 * 1024 * 1024  # 64 MB
 EXT_IMAGE = {'png','jpg','jpeg','gif','webp','bmp','svg'}
 EXT_VIDEO = {'mp4','webm','ogg','mov','avi','mkv'}
 EXT_AUDIO = {'mp3','wav','ogg','m4a','aac','flac'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in EXT_IMAGE
 
 def detect_file_type(filename):
     ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
@@ -1122,12 +1125,25 @@ def view_ticket(tid):
                 return redirect(url_for('view_ticket', tid=tid))
                 
             response_text = request.form.get('response')
-            if response_text:
-                msg = SupportMessage(ticket_id=tid, user_id=current_user.id, message=response_text)
+            image_file = request.files.get('image')
+            image_url = None
+            
+            if image_file and allowed_file(image_file.filename):
+                filename = secure_filename(f"ticket_{tid}_{datetime.now().timestamp()}_{image_file.filename}")
+                image_file.save(os.path.join(UPLOAD_FOLDER, filename))
+                image_url = f"uploads/posts/{filename}" # Usando o folder padrão do sistema
+
+            if response_text or image_url:
+                msg = SupportMessage(
+                    ticket_id=tid, 
+                    user_id=current_user.id, 
+                    message=response_text or "(Imagem enviada)",
+                    image_url=image_url
+                )
                 db.session.add(msg)
                 
-                # Atualiza a resposta principal do ticket para manter compatibilidade e facilitar exibição rápida
-                ticket.response = response_text
+                # Atualiza a resposta principal do ticket
+                ticket.response = response_text or "(Imagem enviada)"
                 ticket.status = request.form.get('status', 'resolvido')
                 
                 if not ticket.assigned_to:
@@ -1143,20 +1159,59 @@ def view_ticket(tid):
                 flash('Este chamado já foi finalizado e não aceita mais respostas.', 'warning')
                 return redirect(url_for('view_ticket', tid=tid))
                 
-            # Só pode responder se o superadmin já deu a primeira resposta
             if not ticket.response:
                 flash('Aguarde o primeiro contato do suporte antes de responder.', 'info')
                 return redirect(url_for('view_ticket', tid=tid))
                 
             reply_text = request.form.get('message')
-            if reply_text:
-                msg = SupportMessage(ticket_id=tid, user_id=current_user.id, message=reply_text)
+            image_file = request.files.get('image')
+            image_url = None
+            
+            if image_file and allowed_file(image_file.filename):
+                filename = secure_filename(f"ticket_{tid}_{datetime.now().timestamp()}_{image_file.filename}")
+                image_file.save(os.path.join(UPLOAD_FOLDER, filename))
+                image_url = f"uploads/posts/{filename}"
+
+            if reply_text or image_url:
+                msg = SupportMessage(
+                    ticket_id=tid, 
+                    user_id=current_user.id, 
+                    message=reply_text or "(Imagem enviada)",
+                    image_url=image_url
+                )
                 db.session.add(msg)
                 db.session.commit()
-                flash('Sua mensagem foi enviada ao suporte!', 'success')
+                flash('Sua mensagem foi enviada!', 'success')
                 return redirect(url_for('view_ticket', tid=tid))
         
     return render_template('view_ticket.html', ticket=ticket)
+
+@app.route('/support/ticket/<int:tid>/json')
+@login_required
+def ticket_messages_json(tid):
+    ticket = SupportTicket.query.get_or_404(tid)
+    if not current_user.is_superadmin and ticket.church_id != current_user.church_id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    msgs = []
+    # Inclui a mensagem inicial
+    msgs.append({
+        'user': 'PASTOR: ' + ticket.user.name,
+        'message': ticket.message,
+        'image': None,
+        'created_at': ticket.created_at.strftime('%d/%m %H:%M'),
+        'is_admin': False
+    })
+    
+    for m in ticket.messages:
+        msgs.append({
+            'user': ('SUPORTE: ' if m.user.is_superadmin else 'PASTOR: ') + m.user.name,
+            'message': m.message,
+            'image': url_for('static', filename=m.image_url) if m.image_url else None,
+            'created_at': m.created_at.strftime('%d/%m %H:%M'),
+            'is_admin': m.user.is_superadmin
+        })
+    return jsonify({'messages': msgs, 'status': ticket.status})
 
 # ── Rotas Gerais ────────────────────────────────────────────────────────────────
 @app.route('/reports')
