@@ -7,8 +7,11 @@
         <p style="color:var(--text-muted);margin:.25rem 0 0;">Portal My Church</p>
     </div>
     <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
+        {% if whatsapp_group_link %}
+        <a href="{{ whatsapp_group_link }}" target="_blank" class="btn" style="background:#25D366;color:white;text-decoration:none;"><i class="fa-brands fa-whatsapp"></i> Grupo da Igreja</a>
+        {% endif %}
         {% if pastor_whatsapp %}
-        <a href="https://wa.me/{{ pastor_whatsapp }}" target="_blank" class="btn" style="background:#25D366;color:white;text-decoration:none;"><i class="fa-brands fa-whatsapp"></i> Pastor</a>
+        <a href="https://wa.me/{{ pastor_whatsapp }}" target="_blank" class="btn" style="background:rgba(255,255,255,0.1);color:white;text-decoration:none;border:1px solid rgba(255,255,255,0.1);"><i class="fa-brands fa-whatsapp"></i> Pastor</a>
         {% endif %}
         {% if instagram %}
         <a href="{{ instagram }}" target="_blank" class="btn" style="background:linear-gradient(45deg,#f09433,#dc2743,#bc1888);color:white;text-decoration:none;"><i class="fa-brands fa-instagram"></i> Instagram</a>

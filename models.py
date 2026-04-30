@@ -33,6 +33,7 @@ class Church(db.Model):
     yt_live_override = db.Column(db.String(50),  nullable=True)
     pastor_whatsapp  = db.Column(db.String(30),  nullable=True)
     church_instagram = db.Column(db.String(200), nullable=True)
+    whatsapp_group_link = db.Column(db.String(255), nullable=True)
 
     # Módulos Ativos
     has_reports   = db.Column(db.Boolean, nullable=False, default=True)

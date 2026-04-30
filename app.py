@@ -605,6 +605,7 @@ def church_settings():
         c.yt_live_override = request.form.get('yt_live_override')
         c.pastor_whatsapp = request.form.get('pastor_whatsapp')
         c.church_instagram = request.form.get('church_instagram')
+        c.whatsapp_group_link = request.form.get('whatsapp_group_link')
         
         c.has_reports = 'has_reports' in request.form
         c.has_lives = 'has_lives' in request.form
@@ -695,7 +696,8 @@ def feed():
     live_video_id = get_live_video_id(current_user.church)
     return render_template('feed.html', posts=posts, live_video_id=live_video_id,
                            pastor_whatsapp=current_user.church.pastor_whatsapp,
-                           instagram=current_user.church.church_instagram)
+                           instagram=current_user.church.church_instagram,
+                           whatsapp_group_link=current_user.church.whatsapp_group_link)
 
 @app.route('/post', methods=['POST'])
 @login_required
