@@ -22,28 +22,36 @@
         ">{{ ticket.status|capitalize }}</span>
     </div>
 
-    <div style="background:rgba(255,255,255,0.03); padding:1.5rem; border-radius:10px; border:1px solid var(--glass-border); margin-bottom:2rem;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-            <h4 style="margin:0; color:var(--text-muted); font-size:0.8rem; text-transform:uppercase;">Mensagem do Pastor:</h4>
-            {% if ticket.assigned_to %}
-                <span style="font-size:0.85rem; color:var(--primary);">
-                    <i class="fa-solid fa-user-shield"></i> Responsável: {{ ticket.admin_assigned.name }}
-                </span>
-            {% else %}
-                <span style="font-size:0.85rem; color:#ef4444;">
-                    <i class="fa-solid fa-triangle-exclamation"></i> Aguardando Atribuição
-                </span>
-            {% endif %}
+    <div style="display:flex; flex-direction:column; gap:1.5rem; margin-bottom:2rem;">
+        <!-- Mensagem Inicial -->
+        <div style="background:rgba(255,255,255,0.03); padding:1.5rem; border-radius:15px; border:1px solid var(--glass-border); width:fit-content; max-width:85%; align-self:flex-start;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; gap:2rem;">
+                <strong style="color:var(--primary); font-size:0.8rem;">PASTOR: {{ ticket.user.name }}</strong>
+                <small style="color:var(--text-muted); font-size:0.75rem;">{{ ticket.created_at.strftime('%d/%m %H:%M') }}</small>
+            </div>
+            <p style="margin:0; line-height:1.6; white-space:pre-wrap;">{{ ticket.message }}</p>
         </div>
-        <p style="margin:0; line-height:1.6; white-space:pre-wrap;">{{ ticket.message }}</p>
-    </div>
 
-    {% if ticket.response %}
-    <div style="background:rgba(16, 185, 129, 0.05); padding:1.5rem; border-radius:10px; border:1px solid #10b98144; margin-bottom:2rem;">
-        <h4 style="margin-top:0; color:#10b981; font-size:0.8rem; text-transform:uppercase;">Resposta do Suporte:</h4>
-        <p style="margin:0; line-height:1.6; white-space:pre-wrap;">{{ ticket.response }}</p>
+        <!-- Histórico de Conversa -->
+        {% for msg in ticket.messages %}
+            <div style="
+                padding:1.5rem; border-radius:15px; width:fit-content; max-width:85%;
+                {% if msg.user.is_superadmin %}
+                    background:rgba(16, 185, 129, 0.05); border:1px solid #10b98144; align-self:flex-end;
+                {% else %}
+                    background:rgba(255,255,255,0.03); border:1px solid var(--glass-border); align-self:flex-start;
+                {% endif %}
+            ">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; gap:2rem;">
+                    <strong style="font-size:0.8rem; {% if msg.user.is_superadmin %}color:#10b981;{% else %}color:var(--primary);{% endif %}">
+                        {% if msg.user.is_superadmin %}SUPORTE: {{ msg.user.name }}{% else %}PASTOR: {{ msg.user.name }}{% endif %}
+                    </strong>
+                    <small style="color:var(--text-muted); font-size:0.75rem;">{{ msg.created_at.strftime('%d/%m %H:%M') }}</small>
+                </div>
+                <p style="margin:0; line-height:1.6; white-space:pre-wrap;">{{ msg.message }}</p>
+            </div>
+        {% endfor %}
     </div>
-    {% endif %}
 
     {% if current_user.is_superadmin %}
     <hr style="border:0; border-top:1px solid var(--glass-border); margin:2rem 0;">
@@ -53,22 +61,22 @@
             <form action="{{ url_for('view_ticket', tid=ticket.id) }}" method="POST">
                 <input type="hidden" name="action" value="assign">
                 <button type="submit" class="btn btn-primary" style="padding:1rem 2rem;">
-                    <i class="fa-solid fa-hand-holding-hand"></i> Assumir este Chamado
+                    <i class="fa-solid fa-hand-holding-hand"></i> Assumir este Chamado e Responder
                 </button>
             </form>
             <p style="color:var(--text-muted); font-size:0.85rem; margin-top:0.5rem;">Ao assumir, você será o único responsável por este chamado.</p>
         </div>
     {% elif ticket.assigned_to == current_user.id %}
         <div class="card glass" style="background:rgba(255,255,255,0.02);">
-            <h3 style="margin-top:0;">Responder Chamado</h3>
+            <h3 style="margin-top:0;">Enviar Resposta</h3>
             <form action="{{ url_for('view_ticket', tid=ticket.id) }}" method="POST">
                 <input type="hidden" name="action" value="respond">
                 <div class="form-group">
                     <label>Sua Resposta</label>
-                    <textarea name="response" class="form-control" rows="5" required>{{ ticket.response or '' }}</textarea>
+                    <textarea name="response" class="form-control" rows="4" required placeholder="Escreva aqui sua resposta para o pastor..."></textarea>
                 </div>
                 <div class="form-group">
-                    <label>Status</label>
+                    <label>Alterar Status</label>
                     <select name="status" class="form-control">
                         <option value="aberto" {% if ticket.status == 'aberto' %}selected{% endif %}>Aberto</option>
                         <option value="em_analise" {% if ticket.status == 'em_analise' %}selected{% endif %}>Em Análise</option>
@@ -76,7 +84,7 @@
                         <option value="fechado" {% if ticket.status == 'fechado' %}selected{% endif %}>Fechado</option>
                     </select>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width:100%; margin-top:1rem;">Enviar Resposta / Atualizar Status</button>
+                <button type="submit" class="btn btn-primary" style="width:100%; margin-top:1rem;">Enviar Resposta</button>
             </form>
         </div>
     {% else %}
@@ -86,6 +94,33 @@
             <p style="color:var(--text-muted); margin-top:0.5rem;">Este chamado já está sendo atendido por <strong>{{ ticket.admin_assigned.name }}</strong>.</p>
         </div>
     {% endif %}
+    
+    {% elif current_user.role == 'pastor' %}
+        {% if ticket.status != 'fechado' and ticket.status != 'resolvido' %}
+            {% if ticket.response %}
+            <hr style="border:0; border-top:1px solid var(--glass-border); margin:2rem 0;">
+            <div class="card glass" style="background:rgba(255,255,255,0.02);">
+                <h3 style="margin-top:0;">Responder ao Suporte</h3>
+                <form action="{{ url_for('view_ticket', tid=ticket.id) }}" method="POST">
+                    <div class="form-group">
+                        <label>Sua Mensagem</label>
+                        <textarea name="message" class="form-control" rows="4" required placeholder="Digite sua resposta aqui..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width:100%; margin-top:1rem;">Enviar Mensagem</button>
+                </form>
+            </div>
+            {% else %}
+            <div style="text-align:center; padding:2rem; border:1px dotted var(--glass-border); border-radius:10px; margin-top:2rem;">
+                <i class="fa-solid fa-clock-rotate-left" style="font-size:2rem; color:var(--text-muted); margin-bottom:1rem;"></i>
+                <p style="color:var(--text-muted); margin:0;">Aguardando a primeira resposta do suporte para liberar a réplica.</p>
+            </div>
+            {% endif %}
+        {% else %}
+            <div style="text-align:center; padding:2rem; border:1px solid #10b98144; border-radius:10px; background:rgba(16, 185, 129, 0.05); margin-top:2rem;">
+                <i class="fa-solid fa-check-double" style="font-size:2rem; color:#10b981; margin-bottom:1rem;"></i>
+                <p style="color:#10b981; margin:0;">Este chamado foi finalizado. Caso precise de mais ajuda, abra um novo chamado.</p>
+            </div>
+        {% endif %}
     {% endif %}
 </div>
 {% endblock %}

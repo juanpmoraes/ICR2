@@ -3,7 +3,7 @@ from flask import Flask, render_template, redirect, url_for, flash, request, jso
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_bcrypt import Bcrypt
-from models import db, User, Post, Comment, Like, Transaction, Family, FamilyMember, Bill, Church, Schedule, ScheduleMember, Plan, SupportTicket
+from models import db, User, Post, Comment, Like, Transaction, Family, FamilyMember, Bill, Church, Schedule, ScheduleMember, Plan, SupportTicket, SupportMessage
 from dotenv import load_dotenv
 from datetime import datetime, date
 from werkzeug.utils import secure_filename
@@ -1105,31 +1105,56 @@ def view_ticket(tid):
         flash('Sem permissão para ver este chamado.', 'danger')
         return redirect(url_for('support'))
         
-    if request.method == 'POST' and current_user.is_superadmin:
-        action = request.form.get('action')
-        
-        if action == 'assign':
-            ticket.assigned_to = current_user.id
-            ticket.status = 'em_analise'
-            db.session.commit()
-            flash('Você assumiu este chamado!', 'success')
-            return redirect(url_for('view_ticket', tid=tid))
+    if request.method == 'POST':
+        # Ação de Superadmin (Assumir Chamado)
+        if current_user.is_superadmin:
+            action = request.form.get('action')
             
-        # Para responder ou mudar status para resolvido/fechado, precisa ser o dono ou o chamado não ter dono
-        if ticket.assigned_to and ticket.assigned_to != current_user.id:
-            flash('Este chamado está sob os cuidados de outro administrador.', 'warning')
-            return redirect(url_for('view_ticket', tid=tid))
-            
-        ticket.response = request.form.get('response')
-        ticket.status = request.form.get('status', 'resolvido')
-        
-        # Ao responder, se não tiver dono, assume automaticamente
-        if not ticket.assigned_to:
-            ticket.assigned_to = current_user.id
-            
-        db.session.commit()
-        flash('Resposta enviada e chamado atualizado!', 'success')
-        return redirect(url_for('view_ticket', tid=tid))
+            if action == 'assign':
+                ticket.assigned_to = current_user.id
+                ticket.status = 'em_analise'
+                db.session.commit()
+                flash('Você assumiu este chamado!', 'success')
+                return redirect(url_for('view_ticket', tid=tid))
+                
+            if ticket.assigned_to and ticket.assigned_to != current_user.id:
+                flash('Este chamado está sob os cuidados de outro administrador.', 'warning')
+                return redirect(url_for('view_ticket', tid=tid))
+                
+            response_text = request.form.get('response')
+            if response_text:
+                msg = SupportMessage(ticket_id=tid, user_id=current_user.id, message=response_text)
+                db.session.add(msg)
+                
+                # Atualiza a resposta principal do ticket para manter compatibilidade e facilitar exibição rápida
+                ticket.response = response_text
+                ticket.status = request.form.get('status', 'resolvido')
+                
+                if not ticket.assigned_to:
+                    ticket.assigned_to = current_user.id
+                    
+                db.session.commit()
+                flash('Resposta enviada!', 'success')
+                return redirect(url_for('view_ticket', tid=tid))
+
+        # Ação de Pastor (Responder Chamado)
+        else:
+            if ticket.status == 'fechado' or ticket.status == 'resolvido':
+                flash('Este chamado já foi finalizado e não aceita mais respostas.', 'warning')
+                return redirect(url_for('view_ticket', tid=tid))
+                
+            # Só pode responder se o superadmin já deu a primeira resposta
+            if not ticket.response:
+                flash('Aguarde o primeiro contato do suporte antes de responder.', 'info')
+                return redirect(url_for('view_ticket', tid=tid))
+                
+            reply_text = request.form.get('message')
+            if reply_text:
+                msg = SupportMessage(ticket_id=tid, user_id=current_user.id, message=reply_text)
+                db.session.add(msg)
+                db.session.commit()
+                flash('Sua mensagem foi enviada ao suporte!', 'success')
+                return redirect(url_for('view_ticket', tid=tid))
         
     return render_template('view_ticket.html', ticket=ticket)
 

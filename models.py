@@ -212,3 +212,14 @@ class SupportTicket(db.Model):
     user   = db.relationship('User', backref='tickets', foreign_keys=[user_id])
     church = db.relationship('Church', backref='tickets')
     admin_assigned = db.relationship('User', backref='assigned_tickets', foreign_keys=[assigned_to])
+
+class SupportMessage(db.Model):
+    """Mensagens de troca dentro de um chamado."""
+    id         = db.Column(db.Integer, primary_key=True)
+    ticket_id  = db.Column(db.Integer, db.ForeignKey('support_ticket.id'), nullable=False)
+    user_id    = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    message    = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    ticket = db.relationship('SupportTicket', backref='messages')
+    user   = db.relationship('User', backref='support_messages')
