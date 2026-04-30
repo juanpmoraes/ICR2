@@ -7,7 +7,9 @@
     {% if church and church.logo_url %}
     <link rel="icon" type="image/png" href="{{ url_for('static', filename=church.logo_url) }}">
     {% else %}
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 512'><path fill='%23{{ (church.primary_color[1:] if church else 'd4af37') }}' d='M320 0c-17.7 0-32 14.3-32 32V288H32c-17.7 0-32 14.3-32 32V480c0 17.7 14.3 32 32 32H608c17.7 0 32-14.3 32-32V320c0-17.7-14.3-32-32-32H352V32c0-17.7-14.3-32-32-32z'/></svg>">
+    {% set initial = church.name[0]|upper if church else 'M' %}
+    {% set fav_color = church.primary_color if church else '#d4af37' %}
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='{{ fav_color|replace('#', '%23') }}'/><text x='50' y='70' font-family='Arial, sans-serif' font-size='70' fill='white' text-anchor='middle' font-weight='bold'>{{ initial }}</text></svg>">
     {% endif %}
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="{{ church.primary_color if church else '#d4af37' }}">
