@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Igreja Cristã Resplandecer</title>
+    <title>My Church - Gestão Inteligente</title>
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="{{ church.primary_color if church else '#d4af37' }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -99,55 +99,55 @@
                 {% if church and church.has_finance %}
                 <li><a href="{{ url_for('finance') }}" onclick="closeSidebar()"><i class="fa-solid fa-chart-line"></i> Financeiro</a></li>
                 {% endif %}
-                {% if church and church.has_bills %}
-                <li><a href="{{ url_for('bills') }}" onclick="closeSidebar()"><i class="fa-solid fa-file-invoice"></i> Contas a Pagar</a></li>
-                {% endif %}
-                {% if church and church.has_reports %}
-                <li><a href="{{ url_for('reports') }}" onclick="closeSidebar()"><i class="fa-solid fa-chart-pie"></i> Relatórios</a></li>
-                {% endif %}
-                <li><a href="{{ url_for('church_settings') }}" onclick="closeSidebar()"><i class="fa-solid fa-sliders"></i> Configurações</a></li>
-                <li style="border-top:1px solid var(--glass-border); margin-top:0.5rem; padding-top:0.5rem;">
-                    <a href="{{ url_for('support') }}" onclick="closeSidebar()" style="color:var(--primary);">
-                        <i class="fa-solid fa-headset"></i> Suporte ao Pastor
-                    </a>
-                </li>
+                <li><a href="{{ url_for('church_settings') }}" onclick="closeSidebar()"><i class="fa-solid fa-gear"></i> Configurações</a></li>
+                <li><a href="{{ url_for('support') }}" onclick="closeSidebar()"><i class="fa-solid fa-headset"></i> Suporte</a></li>
             </ul>
             {% endif %}
             {% endif %}
+        </div>
 
-            <!-- Sair dentro do scroll — sempre visível no mobile -->
-            <div style="margin-top:1.5rem;border-top:1px solid var(--glass-border);padding-top:1rem;">
-                <a href="{{ url_for('logout') }}" class="logout-btn">
-                    <i class="fa-solid fa-right-from-bracket"></i> Sair
-                </a>
+        <div class="sidebar-footer">
+            <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:1rem;">
+                <div style="width:32px;height:32px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:.8rem;">
+                    {{ current_user.name[0]|upper }}
+                </div>
+                <div style="overflow:hidden;">
+                    <p style="margin:0;font-size:.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ current_user.name }}</p>
+                    <p style="margin:0;font-size:.7rem;color:var(--text-muted);text-transform:uppercase;">{{ current_user.role }}</p>
+                </div>
             </div>
+            <a href="{{ url_for('logout') }}" class="btn btn-danger" style="width:100%;font-size:.8rem;padding:.5rem;"><i class="fa-solid fa-right-from-bracket"></i> Sair</a>
         </div>
     </nav>
+
     <main class="main-content" id="mainContent">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">
-                        {{ message }}
-                    </div>
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
-        
         {% block content %}{% endblock %}
+        
+        <footer style="margin-top: 3rem; padding: 2rem 0; text-align: center; border-top: 1px solid var(--glass-border);">
+            <p style="color: var(--text-muted); font-size: 0.85rem;">
+                &copy; 2026 {{ church.name if church else 'My Church' }}. Criado via My Church.
+            </p>
+        </footer>
     </main>
+
     {% else %}
     <!-- Login/Register Area centered -->
     <div style="display: flex; width: 100%; min-height: 100vh; align-items: center; justify-content: center; flex-direction: column;">
         <div class="logo-area" style="margin-bottom: 2rem; text-align: center; padding: 0 1rem;">
-            <h1 style="color: var(--primary); font-size: 2.5rem; text-align: center;"><i class="fa-solid fa-church"></i> Plataforma de Igrejas</h1>
+            <h1 style="color: var(--primary); font-size: 2.5rem; text-align: center;"><i class="fa-solid fa-church"></i> My Church</h1>
+            <p style="color:var(--text-muted);margin:.25rem 0 0;">Gestão Inteligente para sua Igreja</p>
         </div>
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">
-                        {{ message }}
-                    </div>
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
@@ -156,52 +156,18 @@
     {% endif %}
 
     <script>
-        // PWA Service Worker Registration
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                .then(reg => console.log('PWA Service Worker Registrado!'))
-                .catch(err => console.log('Falha no PWA SW:', err));
-            });
-        }
-
-        // Smooth animations for alerts
-        setTimeout(() => {
-            const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(alert => {
-                alert.style.opacity = '0';
-                setTimeout(() => alert.remove(), 500);
-            });
-        }, 3000);
-
-        // ── Sidebar mobile ────────────────────────────────────────────────────
         function toggleSidebar() {
-            const sidebar  = document.getElementById('sidebar');
-            const overlay  = document.getElementById('sidebarOverlay');
-            if (!sidebar) return;
-            const open = sidebar.classList.contains('sidebar-open');
-            if (open) {
-                closeSidebar();
-            } else {
-                sidebar.classList.add('sidebar-open');
-                overlay && overlay.classList.add('active');
-                document.body.style.overflow = 'hidden';
-            }
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
         }
-
         function closeSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
-            if (!sidebar) return;
-            sidebar.classList.remove('sidebar-open');
-            overlay && overlay.classList.remove('active');
-            document.body.style.overflow = '';
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
         }
-
-        // Fecha sidebar ao redimensionar para desktop
-        window.addEventListener('resize', () => {
-            if (window.innerWidth >= 768) closeSidebar();
-        });
     </script>
 </body>
 </html>
