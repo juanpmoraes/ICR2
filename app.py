@@ -239,10 +239,10 @@ def checkout_payment():
             
             host_url = request.host_url.rstrip('/')
             
-            # O Mercado Pago recusa IPs de rede local (como 192.168.x.x) nas back_urls.
-            # Se detectarmos que é um teste local via IP, usamos um domínio falso para a API aceitar.
-            is_local_ip = any(ip in host_url for ip in ['192.168.', '10.0.', '172.16.', '127.0.0.1'])
-            safe_host = "https://mychurch.squareweb.app" if is_local_ip else host_url
+            # O Mercado Pago exige URLs válidas no back_urls e costuma recusar URLs locais.
+            # Se estivermos rodando em http:// (desenvolvimento), usamos o domínio de produção.
+            is_local = host_url.startswith('http://')
+            safe_host = "https://mychurch.squareweb.app" if is_local else host_url
             
             preference_data = {
                 "items": [
@@ -265,7 +265,7 @@ def checkout_payment():
                 "auto_return": "approved"
             }
             # Mercado Pago rejeita notification_url sem https
-            if not is_local_ip and host_url.startswith('https://'):
+            if not is_local and host_url.startswith('https://'):
                 preference_data["notification_url"] = host_url + url_for('webhook_mp')
                 
             preference_response = sdk.preference().create(preference_data)
