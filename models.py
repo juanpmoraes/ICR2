@@ -195,3 +195,20 @@ class Plan(db.Model):
     created_at        = db.Column(db.DateTime, default=datetime.utcnow)
     
     churches = db.relationship('Church', backref='plan', lazy=True)
+
+class SupportTicket(db.Model):
+    """Chamados de suporte abertos pelos pastores."""
+    id         = db.Column(db.Integer, primary_key=True)
+    subject    = db.Column(db.String(200), nullable=False)
+    message    = db.Column(db.Text, nullable=False)
+    status     = db.Column(db.String(20), nullable=False, default='aberto') # aberto, em_analise, resolvido, fechado
+    response   = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user_id    = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    church_id  = db.Column(db.Integer, db.ForeignKey('church.id'), nullable=False)
+    assigned_to = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True) # ID do Superadmin responsável
+    
+    user   = db.relationship('User', backref='tickets', foreign_keys=[user_id])
+    church = db.relationship('Church', backref='tickets')
+    admin_assigned = db.relationship('User', backref='assigned_tickets', foreign_keys=[assigned_to])

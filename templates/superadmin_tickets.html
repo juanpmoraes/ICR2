@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+    <h2 style="margin:0;"><i class="fa-solid fa-headset" style="color:var(--primary);"></i> Gerenciar Chamados (Suporte)</h2>
+    <a href="{{ url_for('superadmin_dashboard') }}" class="btn" style="background:transparent; border:1px solid var(--text-muted);">Voltar</a>
+</div>
+
+<div class="card glass">
+    <table style="width:100%; border-collapse:collapse;">
+        <thead>
+            <tr style="text-align:left; border-bottom:1px solid var(--glass-border);">
+                <th style="padding:1rem;">ID</th>
+                <th style="padding:1rem;">Igreja</th>
+                <th style="padding:1rem;">Assunto</th>
+                <th style="padding:1rem;">Data</th>
+                <th style="padding:1rem;">Status</th>
+                <th style="padding:1rem; text-align:right;">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in tickets %}
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                <td style="padding:1rem;">#{{ t.id }}</td>
+                <td style="padding:1rem;">
+                    <strong>{{ t.church.name }}</strong><br>
+                    <small style="color:var(--text-muted);">{{ t.user.name }}</small>
+                </td>
+                <td style="padding:1rem;">{{ t.subject }}</td>
+                <td style="padding:1rem;">{{ t.created_at.strftime('%d/%m/%Y') }}</td>
+                <td style="padding:1rem;">
+                    <span class="badge" style="
+                        {% if t.status == 'aberto' %}background:#3b82f6;
+                        {% elif t.status == 'resolvido' %}background:#10b981;
+                        {% else %}background:#6b7280;{% endif %}
+                        color:white; padding:0.2rem 0.6rem; border-radius:20px; font-size:0.75rem;
+                    ">{{ t.status|capitalize }}</span>
+                </td>
+                <td style="padding:1rem; text-align:right;">
+                    <a href="{{ url_for('view_ticket', tid=t.id) }}" class="btn btn-primary" style="padding:0.4rem 0.8rem; font-size:0.85rem;">Ver / Responder</a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" style="padding:3rem; text-align:center; color:var(--text-muted);">Nenhum chamado aberto.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

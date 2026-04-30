@@ -3,7 +3,7 @@ from flask import Flask, render_template, redirect, url_for, flash, request, jso
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_bcrypt import Bcrypt
-from models import db, User, Post, Comment, Like, Transaction, Family, FamilyMember, Bill, Church, Schedule, ScheduleMember, Plan
+from models import db, User, Post, Comment, Like, Transaction, Family, FamilyMember, Bill, Church, Schedule, ScheduleMember, Plan, SupportTicket
 from dotenv import load_dotenv
 from datetime import datetime, date
 from werkzeug.utils import secure_filename
@@ -1064,6 +1064,74 @@ self.addEventListener('fetch', (e) => {
     return response
 
 
+
+# ── Suporte (Pastores e Superadmin) ──────────────────────────────────────────
+@app.route('/support', methods=['GET', 'POST'])
+@login_required
+def support():
+    if current_user.is_superadmin:
+        tickets = SupportTicket.query.order_by(SupportTicket.created_at.desc()).all()
+        return render_template('superadmin_tickets.html', tickets=tickets)
+    
+    if current_user.role != 'pastor':
+        flash('Apenas pastores podem acessar o suporte.', 'warning')
+        return redirect(url_for('feed'))
+        
+    if request.method == 'POST':
+        subject = request.form.get('subject')
+        message = request.form.get('message')
+        if subject and message:
+            ticket = SupportTicket(
+                subject=subject,
+                message=message,
+                user_id=current_user.id,
+                church_id=current_user.church_id
+            )
+            db.session.add(ticket)
+            db.session.commit()
+            flash('Chamado aberto com sucesso! Nossa equipe responderá em breve.', 'success')
+            return redirect(url_for('support'))
+            
+    my_tickets = SupportTicket.query.filter_by(church_id=current_user.church_id).order_by(SupportTicket.created_at.desc()).all()
+    return render_template('support.html', tickets=my_tickets)
+
+@app.route('/support/ticket/<int:tid>', methods=['GET', 'POST'])
+@login_required
+def view_ticket(tid):
+    ticket = SupportTicket.query.get_or_404(tid)
+    
+    # Verifica permissão
+    if not current_user.is_superadmin and ticket.church_id != current_user.church_id:
+        flash('Sem permissão para ver este chamado.', 'danger')
+        return redirect(url_for('support'))
+        
+    if request.method == 'POST' and current_user.is_superadmin:
+        action = request.form.get('action')
+        
+        if action == 'assign':
+            ticket.assigned_to = current_user.id
+            ticket.status = 'em_analise'
+            db.session.commit()
+            flash('Você assumiu este chamado!', 'success')
+            return redirect(url_for('view_ticket', tid=tid))
+            
+        # Para responder ou mudar status para resolvido/fechado, precisa ser o dono ou o chamado não ter dono
+        if ticket.assigned_to and ticket.assigned_to != current_user.id:
+            flash('Este chamado está sob os cuidados de outro administrador.', 'warning')
+            return redirect(url_for('view_ticket', tid=tid))
+            
+        ticket.response = request.form.get('response')
+        ticket.status = request.form.get('status', 'resolvido')
+        
+        # Ao responder, se não tiver dono, assume automaticamente
+        if not ticket.assigned_to:
+            ticket.assigned_to = current_user.id
+            
+        db.session.commit()
+        flash('Resposta enviada e chamado atualizado!', 'success')
+        return redirect(url_for('view_ticket', tid=tid))
+        
+    return render_template('view_ticket.html', ticket=ticket)
 
 # ── Rotas Gerais ────────────────────────────────────────────────────────────────
 @app.route('/reports')

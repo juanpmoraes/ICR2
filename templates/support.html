@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+    <h2 style="margin:0;"><i class="fa-solid fa-headset" style="color:var(--primary);"></i> Suporte ao Pastor</h2>
+    <a href="https://wa.me/5511967238832" target="_blank" class="btn" style="background:#25d366; color:white; border:none; display:flex; align-items:center; gap:0.5rem;">
+        <i class="fa-brands fa-whatsapp" style="font-size:1.2rem;"></i> Suporte via WhatsApp
+    </a>
+</div>
+
+<div style="display:grid; grid-template-columns: 1fr 2fr; gap:2rem;">
+    <!-- Novo Chamado -->
+    <div>
+        <div class="card glass">
+            <h3 style="margin-top:0;">Abrir Novo Chamado</h3>
+            <p style="color:var(--text-muted); font-size:0.9rem;">Descreva seu problema ou dúvida e nossa equipe responderá o mais breve possível.</p>
+            <form action="{{ url_for('support') }}" method="POST">
+                <div class="form-group">
+                    <label>Assunto</label>
+                    <input type="text" name="subject" class="form-control" required placeholder="Ex: Dúvida sobre financeiro">
+                </div>
+                <div class="form-group">
+                    <label>Mensagem</label>
+                    <textarea name="message" class="form-control" rows="5" required placeholder="Explique detalhadamente..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%; margin-top:1rem;">Enviar Chamado</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Meus Chamados -->
+    <div>
+        <div class="card glass">
+            <h3 style="margin-top:0;">Meus Chamados</h3>
+            {% if not tickets %}
+                <p style="color:var(--text-muted); text-align:center; padding:2rem;">Você ainda não abriu nenhum chamado.</p>
+            {% else %}
+                <div style="display:flex; flex-direction:column; gap:1rem;">
+                    {% for t in tickets %}
+                    <a href="{{ url_for('view_ticket', tid=t.id) }}" style="text-decoration:none; color:inherit;">
+                        <div style="padding:1rem; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02); transition:0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                                <strong style="color:var(--primary);">#{{ t.id }} - {{ t.subject }}</strong>
+                                <span class="badge" style="
+                                    {% if t.status == 'aberto' %}background:#3b82f6;
+                                    {% elif t.status == 'resolvido' %}background:#10b981;
+                                    {% else %}background:#6b7280;{% endif %}
+                                    color:white; padding:0.2rem 0.6rem; border-radius:20px; font-size:0.75rem;
+                                ">{{ t.status|capitalize }}</span>
+                            </div>
+                            <div style="font-size:0.85rem; color:var(--text-muted); display:flex; justify-content:space-between;">
+                                <span>{{ t.created_at.strftime('%d/%m/%Y %H:%M') }}</span>
+                                {% if t.response %}
+                                <span style="color:#10b981;"><i class="fa-solid fa-comment-dots"></i> Respondido</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

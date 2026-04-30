@@ -69,6 +69,8 @@
             <ul class="nav-links">
                 <li><a href="{{ url_for('superadmin_dashboard') }}" onclick="closeSidebar()"><i class="fa-solid fa-crown"></i> Igrejas</a></li>
                 <li><a href="{{ url_for('superadmin_users') }}" onclick="closeSidebar()"><i class="fa-solid fa-users"></i> Usuários Globais</a></li>
+                <li><a href="{{ url_for('superadmin_plans') }}" onclick="closeSidebar()"><i class="fa-solid fa-tags"></i> Planos SaaS</a></li>
+                <li><a href="{{ url_for('support') }}" onclick="closeSidebar()"><i class="fa-solid fa-headset"></i> Chamados Suporte</a></li>
             </ul>
             {% else %}
             <p class="nav-label">GERAL</p>
@@ -104,6 +106,11 @@
                 <li><a href="{{ url_for('reports') }}" onclick="closeSidebar()"><i class="fa-solid fa-chart-pie"></i> Relatórios</a></li>
                 {% endif %}
                 <li><a href="{{ url_for('church_settings') }}" onclick="closeSidebar()"><i class="fa-solid fa-sliders"></i> Configurações</a></li>
+                <li style="border-top:1px solid var(--glass-border); margin-top:0.5rem; padding-top:0.5rem;">
+                    <a href="{{ url_for('support') }}" onclick="closeSidebar()" style="color:var(--primary);">
+                        <i class="fa-solid fa-headset"></i> Suporte ao Pastor
+                    </a>
+                </li>
             </ul>
             {% endif %}
             {% endif %}
