@@ -44,7 +44,7 @@
         </button>
         <div style="display:flex;align-items:center;gap:.6rem;">
             {% if church and church.logo_url %}
-            <img src="{{ url_for('static', filename=church.logo_url) }}" style="height:1.8rem; object-fit:contain;">
+            <img src="{{ url_for('static', filename=church.logo_url) }}" style="height:1.8rem; width:1.8rem; border-radius:50%; object-fit:cover;">
             {% else %}
             <i class="fa-solid fa-church" style="color:var(--primary);font-size:1.3rem;"></i>
             {% endif %}
@@ -57,7 +57,7 @@
         <!-- Logo fixo no topo -->
         <div class="sidebar-header">
             {% if church and church.logo_url %}
-            <img src="{{ url_for('static', filename=church.logo_url) }}" style="height:2.5rem; object-fit:contain; max-width:60px;">
+            <img src="{{ url_for('static', filename=church.logo_url) }}" style="height:3rem; width:3rem; border-radius:50%; object-fit:cover; border:2px solid var(--primary);">
             {% else %}
             <i class="fa-solid fa-church" style="font-size:2rem;color:var(--primary);"></i>
             {% endif %}
