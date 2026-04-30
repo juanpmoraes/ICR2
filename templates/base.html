@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>My Church - Gestão Inteligente</title>
+    {% if church and church.logo_url %}
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename=church.logo_url) }}">
+    {% else %}
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 512'><path fill='%23{{ (church.primary_color[1:] if church else 'd4af37') }}' d='M320 0c-17.7 0-32 14.3-32 32V288H32c-17.7 0-32 14.3-32 32V480c0 17.7 14.3 32 32 32H608c17.7 0 32-14.3 32-32V320c0-17.7-14.3-32-32-32H352V32c0-17.7-14.3-32-32-32z'/></svg>">
+    {% endif %}
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="{{ church.primary_color if church else '#d4af37' }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
