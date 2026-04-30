@@ -366,6 +366,9 @@ def church_settings():
         c.text_muted_color = request.form.get('text_muted_color')
         c.font_family = request.form.get('font_family')
         
+        c.description = request.form.get('description')
+        c.address = request.form.get('address')
+        
         logo = request.files.get('logo_file')
         if logo and logo.filename:
             path, _, _ = save_upload(logo)
@@ -759,7 +762,31 @@ def pay_bill(bid):
     flash(f'Conta "{b.description}" marcada como paga!', 'success')
     return redirect(url_for('bills'))
 
-# ── PWA & Carteirinha ─────────────────────────────────────────────────────────
+# ── PWA & Landing Page ────────────────────────────────────────────────────────
+
+@app.route('/igreja/<slug>')
+def landing_page(slug):
+    church = Church.query.filter_by(slug=slug).first_or_404()
+    # Pega os 3 vídeos mais recentes para exibir na página caso tenha youtube
+    recent_videos = []
+    if church.yt_api_key and church.yt_channel_id:
+        import requests
+        try:
+            url = f"https://www.googleapis.com/youtube/v3/search?key={church.yt_api_key}&channelId={church.yt_channel_id}&part=snippet,id&order=date&maxResults=3"
+            r = requests.get(url, timeout=5)
+            if r.status_code == 200:
+                data = r.json()
+                for item in data.get('items', []):
+                    if item['id'].get('videoId'):
+                        recent_videos.append({
+                            'id': item['id']['videoId'],
+                            'title': item['snippet']['title'],
+                            'thumb': item['snippet']['thumbnails']['medium']['url']
+                        })
+        except:
+            pass
+            
+    return render_template('landing.html', church=church, recent_videos=recent_videos)
 
 @app.route('/manifest.json')
 def manifest():

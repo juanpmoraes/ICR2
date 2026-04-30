@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ church.name }}</title>
+    <link href="https://fonts.googleapis.com/css2?family={{ church.font_family }}:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: {{ church.primary_color }};
+            --primary-dark: {{ church.secondary_color }};
+            --bg-dark: {{ church.bg_color }};
+            --text-main: {{ church.text_main_color }};
+            --text-muted: {{ church.text_muted_color }};
+            --font-main: '{{ church.font_family }}', sans-serif;
+        }
+        body {
+            font-family: var(--font-main);
+            background: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+        }
+        .hero {
+            position: relative;
+            background: linear-gradient(135deg, var(--bg-dark), rgba(0,0,0,0.8));
+            padding: 6rem 2rem;
+            text-align: center;
+            border-bottom: 2px solid var(--primary);
+        }
+        .hero img {
+            height: 120px;
+            object-fit: contain;
+            margin-bottom: 2rem;
+        }
+        .hero i {
+            font-size: 5rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+        .hero h1 {
+            font-size: 3rem;
+            margin: 0;
+            color: var(--primary);
+            font-weight: 800;
+        }
+        .hero p {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 1.5rem auto;
+            line-height: 1.6;
+        }
+        .btn-cta {
+            display: inline-block;
+            background: var(--primary);
+            color: #111;
+            padding: 1rem 2rem;
+            font-weight: 700;
+            text-decoration: none;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+        .btn-cta:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+            background: var(--primary-dark);
+        }
+        .section {
+            padding: 4rem 2rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .section h2 {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .grid-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        .card-info {
+            background: {{ church.card_bg_color }};
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.05);
+            text-align: center;
+        }
+        .card-info i {
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+        .videos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        .video-card img {
+            width: 100%;
+            border-radius: 12px;
+            transition: 0.3s;
+        }
+        .video-card:hover img {
+            transform: scale(1.03);
+        }
+        .video-title {
+            margin-top: 1rem;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        a {
+            color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Hero Section -->
+    <header class="hero">
+        {% if church.logo_url %}
+        <img src="{{ url_for('static', filename=church.logo_url) }}" alt="Logo {{ church.name }}">
+        {% else %}
+        <i class="fa-solid fa-church"></i>
+        {% endif %}
+        
+        <h1>{{ church.name }}</h1>
+        <p>{{ church.description or 'Bem-vindo à nossa congregação. Venha fazer parte da nossa família e adorar a Deus conosco!' }}</p>
+        
+        <div style="margin-top: 2rem; display:flex; gap:1rem; justify-content:center;">
+            <a href="{{ url_for('login') }}" class="btn-cta"><i class="fa-solid fa-user"></i> Portal do Membro</a>
+        </div>
+    </header>
+
+    <!-- Info Section -->
+    <section class="section">
+        <div class="grid-info">
+            {% if church.address %}
+            <div class="card-info">
+                <i class="fa-solid fa-location-dot"></i>
+                <h3>Onde Estamos</h3>
+                <p style="color:var(--text-muted); line-height:1.5;">{{ church.address }}</p>
+            </div>
+            {% endif %}
+
+            <div class="card-info">
+                <i class="fa-solid fa-address-book"></i>
+                <h3>Contato Social</h3>
+                <div style="display:flex; flex-direction:column; gap:1rem; margin-top:1.5rem;">
+                    {% if church.pastor_whatsapp %}
+                    <a href="https://wa.me/{{ church.pastor_whatsapp|replace('+','')|replace(' ','')|replace('-','') }}" target="_blank" style="text-decoration:none;">
+                        <i class="fa-brands fa-whatsapp" style="font-size:1.5rem; vertical-align:middle;"></i> WhatsApp
+                    </a>
+                    {% endif %}
+                    {% if church.church_instagram %}
+                    <a href="https://instagram.com/{{ church.church_instagram|replace('@','') }}" target="_blank" style="text-decoration:none;">
+                        <i class="fa-brands fa-instagram" style="font-size:1.5rem; vertical-align:middle;"></i> Instagram
+                    </a>
+                    {% endif %}
+                    {% if not church.pastor_whatsapp and not church.church_instagram %}
+                    <p style="color:var(--text-muted); font-size:0.9rem;">(Acesse o portal do membro para mais contatos)</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- YouTube Recent Videos -->
+    {% if recent_videos %}
+    <section class="section" style="background:rgba(0,0,0,0.2); border-radius:30px;">
+        <h2><i class="fa-brands fa-youtube"></i> Nossas Últimas Mensagens</h2>
+        <div class="videos-grid">
+            {% for v in recent_videos %}
+            <a href="https://youtube.com/watch?v={{ v.id }}" target="_blank" class="video-card" style="text-decoration:none;">
+                <img src="{{ v.thumb }}" alt="{{ v.title }}">
+                <div class="video-title">{{ v.title }}</div>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <footer style="text-align:center; padding:3rem 1rem; color:var(--text-muted); border-top:1px solid rgba(255,255,255,0.1); margin-top:4rem;">
+        <p>&copy; 2026 {{ church.name }}. Criado via Plataforma Multi-Igrejas.</p>
+    </footer>
+
+</body>
+</html>

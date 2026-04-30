@@ -12,6 +12,10 @@ class Church(db.Model):
     slug             = db.Column(db.String(80),  unique=True, nullable=False)
     created_at       = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
+    # Informações Públicas (Landing Page)
+    description      = db.Column(db.Text, nullable=True)
+    address          = db.Column(db.String(255), nullable=True)
+
     # Personalização visual
     primary_color    = db.Column(db.String(7),  nullable=False, default='#d4af37')
     secondary_color  = db.Column(db.String(7),  nullable=False, default='#b5952f')

@@ -68,13 +68,15 @@ with app.app_context():
             for col in ['has_reports', 'has_lives', 'has_families', 'has_offerings', 'has_finance', 'has_bills']:
                 run_safe(conn, f"ALTER TABLE church ADD COLUMN {col} TINYINT(1) NOT NULL DEFAULT 1", f'church.{col}')
 
-            # ── Church: appearance ───────────────────────────────────────────────
+            # ── Church: appearance & public info ─────────────────────────────────
             for col, dflt in [('secondary_color', "'#b5952f'"),
                               ('card_bg_color', "'rgba(255, 255, 255, 0.05)'"),
                               ('text_main_color', "'#f0f0f0'"),
                               ('text_muted_color', "'#a0a0b0'"),
                               ('font_family', "'Inter'"),
-                              ('logo_url', "NULL")]:
+                              ('logo_url', "NULL"),
+                              ('description', "NULL"),
+                              ('address', "NULL")]:
                 run_safe(conn, f"ALTER TABLE church ADD COLUMN {col} VARCHAR(255) DEFAULT {dflt}", f'church.{col}')
 
 
@@ -109,7 +111,9 @@ with app.app_context():
                               ('text_main_color', "'#f0f0f0'"),
                               ('text_muted_color', "'#a0a0b0'"),
                               ('font_family', "'Inter'"),
-                              ('logo_url', "NULL")]:
+                              ('logo_url', "NULL"),
+                              ('description', "NULL"),
+                              ('address', "NULL")]:
                 run_safe(conn, f"ALTER TABLE church ADD COLUMN {col} TEXT DEFAULT {dflt}", f'church.{col}')
 
     print('\n✅  Migração concluída!')

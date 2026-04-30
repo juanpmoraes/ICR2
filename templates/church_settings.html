@@ -5,6 +5,20 @@
     <p style="color:var(--text-muted); margin-bottom:2rem;">Personalize a aparência e integrações exclusivas da sua congregação.</p>
 
     <form method="POST" enctype="multipart/form-data">
+        <h3 style="color:var(--text-main); margin-bottom:1rem;">Informações Públicas</h3>
+        <div style="display:grid; grid-template-columns:1fr; gap:1.5rem; margin-bottom:2rem;">
+            <div class="form-group" style="margin:0;">
+                <label>Descrição (Quem somos / Missão)</label>
+                <textarea name="description" class="form-control" rows="3" placeholder="Escreva uma breve apresentação da sua igreja para a página pública...">{{ c.description or '' }}</textarea>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label>Endereço Completo</label>
+                <input type="text" name="address" class="form-control" value="{{ c.address or '' }}" placeholder="Ex: Rua das Flores, 123 - Centro, São Paulo">
+            </div>
+        </div>
+
+        <hr style="border:0; border-top:1px solid var(--glass-border); margin:2rem 0;">
+
         <h3 style="color:var(--text-main); margin-bottom:1rem;">Aparência</h3>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:2rem;">
             <div class="form-group" style="margin:0;">
