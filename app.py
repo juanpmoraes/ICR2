@@ -141,11 +141,11 @@ def check_approval_and_reset():
             if c:
                 # Checagem de assinatura SaaS
                 if c.subscription_status != 'active':
-                    return redirect(url_for('payment_blocked'))
+                    return redirect(url_for('checkout_payment'))
                 if c.subscription_expires_at and datetime.utcnow() > c.subscription_expires_at:
                     c.subscription_status = 'expired'
                     db.session.commit()
-                    return redirect(url_for('payment_blocked'))
+                    return redirect(url_for('checkout_payment'))
             
             if not current_user.is_approved:
                 return redirect(url_for('pending_approval'))
