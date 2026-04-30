@@ -65,8 +65,15 @@
         <p>Igreja: <strong>{{ current_user.church.name }}</strong></p>
         
         <div style="background:rgba(255,255,255,0.05); padding:1.5rem; border-radius:12px; margin-bottom:2rem;">
-            <div style="font-size:0.9rem; color:var(--text-muted); margin-bottom:0.5rem;">Valor da Mensalidade</div>
-            <div style="font-size:2.5rem; font-weight:800; color:var(--primary);">R$ 97,00</div>
+            <div style="font-size:0.9rem; color:var(--text-muted); margin-bottom:0.5rem;">Valor da Mensalidade {% if plan %}({{ plan.name }}){% endif %}</div>
+            {% if plan and plan.promotional_price %}
+                <div style="font-size:1.2rem; text-decoration: line-through; color:var(--text-muted); margin-bottom:0.2rem;">R$ {{ "%.2f"|format(plan.price) }}</div>
+                <div style="font-size:2.5rem; font-weight:800; color:var(--primary);">R$ {{ "%.2f"|format(final_price) }}</div>
+            {% elif final_price %}
+                <div style="font-size:2.5rem; font-weight:800; color:var(--primary);">R$ {{ "%.2f"|format(final_price) }}</div>
+            {% else %}
+                <div style="font-size:2.5rem; font-weight:800; color:var(--primary);">R$ 97,00</div>
+            {% endif %}
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}

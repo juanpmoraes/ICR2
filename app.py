@@ -215,6 +215,15 @@ def checkout_payment():
     if current_user.church.subscription_status == 'active':
         return redirect(url_for('home'))
         
+    # Checa se há plano, se não, vincula o plano padrão
+    plan = current_user.church.plan
+    if not plan:
+        plan = Plan.query.first()
+        current_user.church.plan = plan
+        db.session.commit()
+    
+    final_price = plan.promotional_price if plan.promotional_price else plan.price
+
     # Integração com Mercado Pago (SaaS)
     # A chave do Superadmin deve estar no .env como SAAS_MP_ACCESS_TOKEN
     mp_token = os.getenv('SAAS_MP_ACCESS_TOKEN')
@@ -227,15 +236,6 @@ def checkout_payment():
     if mp_token:
         try:
             sdk = mercadopago.SDK(mp_token)
-            
-            # Checa se há plano, se não, vincula o plano padrão (fallback para contas criadas antes da atualização)
-            plan = current_user.church.plan
-            if not plan:
-                plan = Plan.query.first()
-                current_user.church.plan = plan
-                db.session.commit()
-            
-            final_price = plan.promotional_price if plan.promotional_price else plan.price
             
             host_url = request.host_url.rstrip('/')
             
@@ -279,7 +279,7 @@ def checkout_payment():
             flash(f"Erro interno ao gerar pagamento: {str(e)}", "danger")
             print("Erro ao gerar Preference SaaS MP:", e)
             
-    return render_template('checkout_payment.html', init_point=init_point)
+    return render_template('checkout_payment.html', init_point=init_point, plan=plan, final_price=final_price)
 
 @app.route('/payment-blocked')
 @login_required
