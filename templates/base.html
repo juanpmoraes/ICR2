@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>My Church - Gestão Inteligente</title>
     {% if church and church.logo_url %}
-    {% set logo_path = url_for('static', filename=church.logo_url) %}
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><mask id='mask'><circle cx='50' cy='50' r='50' fill='white'/></mask><image href='{{ logo_path }}' width='100' height='100' mask='url(%23mask)' preserveAspectRatio='xMidYMid slice'/></svg>">
+    {% set logo_url = request.host_url[:-1] + url_for('static', filename=church.logo_url) %}
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><mask id='mask'><circle cx='50' cy='50' r='50' fill='white'/></mask><image href='{{ logo_url }}' width='100' height='100' mask='url(%23mask)' preserveAspectRatio='xMidYMid slice'/></svg>">
     {% else %}
     {% set initial = church.name[0]|upper if church else 'M' %}
     {% set fav_color = church.primary_color if church else '#d4af37' %}
