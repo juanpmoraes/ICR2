@@ -518,7 +518,7 @@ def superadmin_edit_user(uid):
         db.session.commit()
         flash(f'Usuário {u.name} atualizado com sucesso.', 'success')
         return redirect(url_for('superadmin_dashboard'))
-    return render_template('superadmin_church_edit.html', c=c)
+    return render_template('superadmin_user_edit.html', u=u, churches=churches)
 
 @app.route('/superadmin/church/<int:cid>/grant_free_access', methods=['POST'])
 @superadmin_required
