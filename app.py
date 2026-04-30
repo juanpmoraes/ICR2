@@ -989,54 +989,7 @@ def pay_bill(bid):
     return redirect(url_for('bills'))
 
 # ── Perfil e Foto ───────────────────────────────────────────────────────────
-@app.route('/profile')
-@login_required
-def profile():
-    return render_template('profile.html')
 
-@app.route('/profile/photo', methods=['POST'])
-@login_required
-def upload_profile_pic():
-    file = request.files.get('profile_file')
-    if file and file.filename:
-        # Define pasta específica para perfis
-        profile_folder = os.path.join(os.path.dirname(__file__), 'static', 'uploads', 'profiles')
-        os.makedirs(profile_folder, exist_ok=True)
-        
-        orig = secure_filename(file.filename)
-        ext  = orig.rsplit('.', 1)[-1].lower() if '.' in orig else ''
-        uid  = uuid.uuid4().hex
-        stored = f"{uid}.{ext}" if ext else uid
-        file.save(os.path.join(profile_folder, stored))
-        
-        # Remove foto antiga se existir
-        if current_user.profile_pic_url:
-            old_path = os.path.join(os.path.dirname(__file__), 'static', current_user.profile_pic_url)
-            if os.path.exists(old_path): os.remove(old_path)
-            
-        current_user.profile_pic_url = f'uploads/profiles/{stored}'
-        db.session.commit()
-        flash('Foto de perfil atualizada!', 'success')
-    return redirect(url_for('profile'))
-
-@app.route('/profile/photo/remove/<int:uid>', methods=['POST'])
-@login_required
-def remove_profile_pic(uid):
-    u = User.query.get_or_404(uid)
-    # Permissão: pastor da igreja ou o próprio usuário
-    if current_user.role == 'pastor' and u.church_id == current_user.church_id or current_user.id == u.id:
-        if u.profile_pic_url:
-            old_path = os.path.join(os.path.dirname(__file__), 'static', u.profile_pic_url)
-            if os.path.exists(old_path): os.remove(old_path)
-            u.profile_pic_url = None
-            db.session.commit()
-            flash(f'Foto de perfil de {u.name} removida.', 'info')
-    else:
-        flash('Sem permissão.', 'danger')
-    
-    if current_user.id == u.id:
-        return redirect(url_for('profile'))
-    return redirect(url_for('members'))
 
 @app.route('/igreja/<slug>')
 def landing_page(slug):
@@ -1431,6 +1384,50 @@ def profile():
         flash('Perfil atualizado!', 'success')
         return redirect(url_for('profile'))
     return render_template('profile.html')
+
+@app.route('/profile/photo', methods=['POST'])
+@login_required
+def upload_profile_pic():
+    file = request.files.get('profile_file')
+    if file and file.filename:
+        # Define pasta específica para perfis
+        profile_folder = os.path.join(os.path.dirname(__file__), 'static', 'uploads', 'profiles')
+        os.makedirs(profile_folder, exist_ok=True)
+        
+        orig = secure_filename(file.filename)
+        ext  = orig.rsplit('.', 1)[-1].lower() if '.' in orig else ''
+        uid  = uuid.uuid4().hex
+        stored = f"{uid}.{ext}" if ext else uid
+        file.save(os.path.join(profile_folder, stored))
+        
+        # Remove foto antiga se existir
+        if current_user.profile_pic_url:
+            old_path = os.path.join(os.path.dirname(__file__), 'static', current_user.profile_pic_url)
+            if os.path.exists(old_path): os.remove(old_path)
+            
+        current_user.profile_pic_url = f'uploads/profiles/{stored}'
+        db.session.commit()
+        flash('Foto de perfil atualizada!', 'success')
+    return redirect(url_for('profile'))
+
+@app.route('/profile/photo/remove/<int:uid>', methods=['POST'])
+@login_required
+def remove_profile_pic(uid):
+    u = User.query.get_or_404(uid)
+    # Permissão: pastor da igreja ou o próprio usuário
+    if current_user.role == 'pastor' and u.church_id == current_user.church_id or current_user.id == u.id:
+        if u.profile_pic_url:
+            old_path = os.path.join(os.path.dirname(__file__), 'static', u.profile_pic_url)
+            if os.path.exists(old_path): os.remove(old_path)
+            u.profile_pic_url = None
+            db.session.commit()
+            flash(f'Foto de perfil de {u.name} removida.', 'info')
+    else:
+        flash('Sem permissão.', 'danger')
+    
+    if current_user.id == u.id:
+        return redirect(url_for('profile'))
+    return redirect(url_for('members'))
 
 # ── Escalas (Schedules) ───────────────────────────────────────────────────────
 @app.route('/schedules')

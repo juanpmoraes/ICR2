@@ -215,7 +215,11 @@
     <div id="comments-{{ post.id }}" style="display:none;">
         {% for c in post.comments %}
         <div style="display:flex;align-items:flex-start;gap:.75rem;padding:.75rem 1.5rem;border-top:1px solid rgba(255,255,255,0.04);">
+            {% if c.author.profile_pic_url %}
+            <img src="{{ url_for('static', filename=c.author.profile_pic_url) }}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:1px solid var(--primary);">
+            {% else %}
             <div style="width:30px;height:30px;border-radius:50%;background:rgba(212,175,55,0.15);display:flex;align-items:center;justify-content:center;color:var(--primary);font-weight:bold;font-size:.75rem;flex-shrink:0;">{{ c.author.name[0].upper() }}</div>
+            {% endif %}
             <div style="flex:1;">
                 <span style="color:var(--primary);font-size:.85rem;font-weight:600;">{{ c.author.name }}</span>
                 <span style="color:var(--text-muted);font-size:.75rem;margin-left:.5rem;">{{ c.created_at.strftime('%d/%m %H:%M') }}</span>
@@ -230,7 +234,11 @@
         {% endfor %}
         <form action="{{ url_for('add_comment', post_id=post.id) }}" method="POST"
               style="display:flex;gap:.75rem;padding:1rem 1.5rem;align-items:center;border-top:1px solid rgba(255,255,255,0.05);">
+            {% if current_user.profile_pic_url %}
+            <img src="{{ url_for('static', filename=current_user.profile_pic_url) }}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:1px solid var(--primary);">
+            {% else %}
             <div style="width:30px;height:30px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:var(--bg-dark);font-weight:bold;font-size:.75rem;flex-shrink:0;">{{ current_user.name[0].upper() }}</div>
+            {% endif %}
             <input type="text" name="content" class="form-control" placeholder="Comentário..." required style="flex:1;border-radius:20px;padding:.5rem 1rem;">
             <button type="submit" class="btn btn-primary" style="padding:.5rem 1rem;border-radius:20px;"><i class="fa-solid fa-paper-plane"></i></button>
         </form>
