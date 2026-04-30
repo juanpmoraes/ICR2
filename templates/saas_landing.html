@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plataforma SaaS para Igrejas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* Estilos específicos da Landing Page (SaaS) */
+        body {
+            display: block; /* Overrides style.css flex */
+            margin: 0;
+        }
+        .btn-outline {
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 0.8rem 2rem;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-block;
+            transition: 0.3s;
+        }
+        .btn-outline:hover {
+            background: var(--primary);
+            color: var(--bg-dark);
+        }
+        .navbar {
+            padding: 1.5rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            position: fixed;
+            width: 90%;
+            top: 0;
+            z-index: 100;
+        }
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .hero {
+            padding: 12rem 5% 6rem;
+            text-align: center;
+            background: radial-gradient(circle at center, #1e1b4b 0%, var(--bg-dark) 70%);
+        }
+        .hero h1 {
+            font-size: 4rem;
+            margin: 0;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.2;
+        }
+        .hero p {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 2rem auto;
+            line-height: 1.6;
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            padding: 4rem 5%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .feature-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            padding: 2.5rem;
+            border-radius: 20px;
+            text-align: center;
+        }
+        .feature-card i {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+        }
+        .feature-card h3 {
+            margin: 0 0 1rem 0;
+            font-size: 1.3rem;
+        }
+        .pricing {
+            text-align: center;
+            padding: 4rem 5% 8rem;
+        }
+        .price-card {
+            background: linear-gradient(145deg, rgba(79, 70, 229, 0.1), rgba(79, 70, 229, 0.05));
+            border: 1px solid var(--primary);
+            padding: 3rem;
+            border-radius: 30px;
+            max-width: 400px;
+            margin: 0 auto;
+            position: relative;
+        }
+        .price-tag {
+            font-size: 4rem;
+            font-weight: 800;
+            color: #fff;
+            margin: 1rem 0;
+        }
+        .price-tag span {
+            font-size: 1rem;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <a href="/" class="logo" style="color:var(--text-main);"><i class="fa-solid fa-church" style="color:var(--primary);"></i> ChurchSaaS</a>
+        <div>
+            <a href="{{ url_for('login') }}" class="btn-outline" style="margin-right: 0.5rem; padding: 0.6rem 1.5rem;">Já sou membro</a>
+            <a href="{{ url_for('saas_checkout') }}" class="btn btn-primary" style="padding: 0.6rem 1.5rem;">Cadastrar Igreja</a>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <h1>Transforme a Gestão<br>da sua Igreja</h1>
+        <p>Aplicativo próprio, carteirinha digital, controle financeiro e transmissões ao vivo. Tudo em uma plataforma unificada e personalizada com as cores do seu ministério.</p>
+        <a href="#pricing" class="btn btn-primary" style="font-size:1.2rem; padding: 1rem 3rem;">Começar Agora</a>
+    </section>
+
+    <section class="features">
+        <div class="card glass feature-card">
+            <i class="fa-solid fa-mobile-screen"></i>
+            <h3>Seu Próprio App (PWA)</h3>
+            <p style="color:var(--text-muted)">Os membros podem instalar o aplicativo no celular direto do navegador. Funciona em Android e iOS!</p>
+        </div>
+        <div class="card glass feature-card">
+            <i class="fa-solid fa-id-card"></i>
+            <h3>Carteirinha Digital</h3>
+            <p style="color:var(--text-muted)">Cada membro tem sua carteirinha virtual lindíssima, com código único e as cores da igreja.</p>
+        </div>
+        <div class="card glass feature-card">
+            <i class="fa-solid fa-chart-line"></i>
+            <h3>Gestão Financeira</h3>
+            <p style="color:var(--text-muted)">Controle de dízimos, ofertas, contas a pagar e relatórios em gráficos automáticos.</p>
+        </div>
+        <div class="card glass feature-card">
+            <i class="fa-solid fa-calendar-check"></i>
+            <h3>Escalas e Voluntários</h3>
+            <p style="color:var(--text-muted)">Gerencie quem vai tocar, cantar ou recepcionar nos cultos e eventos com um clique.</p>
+        </div>
+    </section>
+
+    <section id="pricing" class="pricing">
+        <h2 style="font-size: 2.5rem; margin-bottom: 3rem;">Escolha o Melhor Plano</h2>
+        <div style="display:flex; justify-content:center; gap:2rem; flex-wrap:wrap;">
+            {% for p in plans %}
+            <div class="card glass price-card" style="flex:1; min-width:300px; max-width:400px; padding:3rem;">
+                {% if p.promotional_price %}
+                <div style="background:#ef4444; color:#fff; display:inline-block; padding:0.3rem 1rem; border-radius:20px; font-weight:600; font-size:0.9rem; margin-bottom:1rem; animation: pulse 2s infinite;">PROMOÇÃO ESPECIAL</div>
+                {% endif %}
+                <h3 style="margin:0; font-size:1.5rem;">{{ p.name }}</h3>
+                <div class="price-tag">
+                    {% if p.promotional_price %}
+                    <span style="font-size:1.5rem; text-decoration:line-through; color:var(--text-muted); display:block; line-height:1;">R$ {{"%.2f"|format(p.price)}}</span>
+                    R$ {{"%.2f"|format(p.promotional_price)}}<span>/mês</span>
+                    {% else %}
+                    R$ {{"%.2f"|format(p.price)}}<span>/mês</span>
+                    {% endif %}
+                </div>
+                
+                {% if p.features %}
+                <ul style="text-align:left; color:var(--text-muted); list-style:none; padding:0; margin:2rem 0; line-height:2.5;">
+                    {% for feature in p.features.split('\n') %}
+                    {% if feature.strip() %}
+                    <li><i class="fa-solid fa-check" style="color:var(--primary); margin-right:10px;"></i> {{ feature }}</li>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+                {% endif %}
+                
+                <a href="{{ url_for('saas_checkout', plan_id=p.id) }}" class="btn btn-primary" style="width:100%; margin-top:1rem;">Assinar e Criar Igreja</a>
+            </div>
+            {% else %}
+            <p style="color:var(--text-muted);">Nenhum plano disponível no momento.</p>
+            {% endfor %}
+        </div>
+        <p style="font-size:0.9rem; color:var(--text-muted); margin-top:3rem;">Cancele a qualquer momento. Sem fidelidade.</p>
+    </section>
+
+</body>
+</html>

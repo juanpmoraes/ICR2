@@ -74,6 +74,9 @@
             <p class="nav-label">GERAL</p>
             <ul class="nav-links">
                 <li><a href="{{ url_for('feed') }}" onclick="closeSidebar()"><i class="fa-solid fa-house"></i> Início</a></li>
+                {% if church and church.has_schedules %}
+                <li><a href="{{ url_for('schedules') }}" onclick="closeSidebar()"><i class="fa-solid fa-calendar-check"></i> Escalas</a></li>
+                {% endif %}
                 {% if church and church.has_lives %}
                 <li><a href="{{ url_for('lives') }}" onclick="closeSidebar()"><i class="fa-solid fa-tower-broadcast"></i> Lives</a></li>
                 {% endif %}

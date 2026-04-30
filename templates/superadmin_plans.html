@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+    <h2 style="margin:0;"><i class="fa-solid fa-tags" style="color:var(--primary);"></i> Planos e Promoções</h2>
+    <div>
+        <a href="{{ url_for('superadmin_dashboard') }}" class="btn" style="background:transparent; border:1px solid var(--text-muted); margin-right:1rem;">Voltar</a>
+        <button class="btn btn-primary" onclick="document.getElementById('addPlanModal').style.display='flex'">
+            <i class="fa-solid fa-plus"></i> Novo Plano
+        </button>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:1.5rem;">
+    {% for p in plans %}
+    <div class="card glass" style="position:relative; {% if not p.is_active %}opacity:0.6;{% endif %}">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <h3 style="margin:0; color:var(--primary);">{{ p.name }}</h3>
+            <div style="display:flex; gap:0.5rem;">
+                <button onclick="editPlan({{ p.id }}, '{{ p.name }}', {{ p.price }}, '{{ p.promotional_price or '' }}', '{{ p.features|replace('\n', '\\n') }}', {{ p.is_active|lower }})" style="background:none; border:none; color:var(--text-muted); cursor:pointer;">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+                <form action="{{ url_for('delete_plan', pid=p.id) }}" method="POST" onsubmit="return confirm('Excluir este plano?');">
+                    <button type="submit" style="background:none; border:none; color:#ef5350; cursor:pointer;">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <div style="margin-top:1rem;">
+            {% if p.promotional_price %}
+            <div style="color:var(--text-muted); text-decoration:line-through; font-size:0.9rem;">R$ {{ "%.2f"|format(p.price) }}</div>
+            <div style="font-size:2rem; font-weight:800; color:var(--primary);">R$ {{ "%.2f"|format(p.promotional_price) }}</div>
+            {% else %}
+            <div style="font-size:2rem; font-weight:800; color:var(--primary);">R$ {{ "%.2f"|format(p.price) }}</div>
+            {% endif %}
+        </div>
+
+        <div style="margin-top:1rem; font-size:0.9rem; color:var(--text-muted);">
+            <strong>Status:</strong> {% if p.is_active %}<span style="color:#4ade80;">Ativo</span>{% else %}<span style="color:#f87171;">Inativo</span>{% endif %}
+        </div>
+
+        {% if p.features %}
+        <hr style="border:0; border-top:1px solid var(--glass-border); margin:1rem 0;">
+        <ul style="padding-left:1.2rem; color:var(--text-main); font-size:0.9rem; line-height:1.6; margin:0;">
+            {% for feature in p.features.split('\n') %}
+            {% if feature.strip() %}
+            <li>{{ feature }}</li>
+            {% endif %}
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Modal Add Plan -->
+<div id="addPlanModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center;">
+    <div class="card glass" style="width:90%; max-width:500px; padding:2rem;">
+        <h3 style="margin-top:0;">Criar Novo Plano / Promoção</h3>
+        <form action="{{ url_for('add_plan') }}" method="POST">
+            <div class="form-group">
+                <label>Nome do Plano</label>
+                <input type="text" name="name" class="form-control" required placeholder="Ex: Black Friday Ilimitado">
+            </div>
+            <div style="display:flex; gap:1rem;">
+                <div class="form-group" style="flex:1;">
+                    <label>Preço Original (R$)</label>
+                    <input type="number" step="0.01" name="price" class="form-control" required placeholder="97.00">
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>Preço Promocional (Opcional)</label>
+                    <input type="number" step="0.01" name="promotional_price" class="form-control" placeholder="47.00">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Recursos (Um por linha)</label>
+                <textarea name="features" class="form-control" rows="4" placeholder="Membros Ilimitados&#10;Suporte VIP"></textarea>
+            </div>
+            <div style="display:flex; gap:1rem; margin-top:1.5rem;">
+                <button type="button" class="btn" style="flex:1; background:transparent; border:1px solid var(--text-muted);" onclick="document.getElementById('addPlanModal').style.display='none'">Cancelar</button>
+                <button type="submit" class="btn btn-primary" style="flex:1;">Salvar Plano</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Edit Plan -->
+<div id="editPlanModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center;">
+    <div class="card glass" style="width:90%; max-width:500px; padding:2rem;">
+        <h3 style="margin-top:0;">Editar Plano</h3>
+        <form id="editPlanForm" method="POST">
+            <div class="form-group">
+                <label>Nome do Plano</label>
+                <input type="text" id="edit_name" name="name" class="form-control" required>
+            </div>
+            <div style="display:flex; gap:1rem;">
+                <div class="form-group" style="flex:1;">
+                    <label>Preço Original (R$)</label>
+                    <input type="number" step="0.01" id="edit_price" name="price" class="form-control" required>
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>Preço Promocional</label>
+                    <input type="number" step="0.01" id="edit_promo" name="promotional_price" class="form-control">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Recursos</label>
+                <textarea id="edit_features" name="features" class="form-control" rows="4"></textarea>
+            </div>
+            <div class="form-group" style="display:flex; align-items:center; gap:0.5rem;">
+                <input type="checkbox" id="edit_active" name="is_active">
+                <label for="edit_active" style="margin:0;">Plano Ativo (Visível no Site)</label>
+            </div>
+            <div style="display:flex; gap:1rem; margin-top:1.5rem;">
+                <button type="button" class="btn" style="flex:1; background:transparent; border:1px solid var(--text-muted);" onclick="document.getElementById('editPlanModal').style.display='none'">Cancelar</button>
+                <button type="submit" class="btn btn-primary" style="flex:1;">Atualizar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function editPlan(id, name, price, promo, features, isActive) {
+    document.getElementById('editPlanForm').action = "/superadmin/plans/" + id + "/edit";
+    document.getElementById('edit_name').value = name;
+    document.getElementById('edit_price').value = price;
+    document.getElementById('edit_promo').value = promo;
+    document.getElementById('edit_features').value = features;
+    document.getElementById('edit_active').checked = isActive;
+    document.getElementById('editPlanModal').style.display = 'flex';
+}
+</script>
+{% endblock %}

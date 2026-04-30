@@ -113,6 +113,10 @@
                 <input type="checkbox" name="has_reports" value="1" {% if c.has_reports %}checked{% endif %} style="width:1.2rem; height:1.2rem;">
                 <span style="font-weight:600;">Relatórios Gráficos</span>
             </label>
+            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                <input type="checkbox" name="has_schedules" value="1" {% if c.has_schedules %}checked{% endif %} style="width:1.2rem; height:1.2rem;">
+                <span style="font-weight:600;">Escalas de Ministérios</span>
+            </label>
         </div>
 
         <hr style="border:0; border-top:1px solid var(--glass-border); margin:2rem 0;">

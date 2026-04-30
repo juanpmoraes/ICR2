@@ -3,7 +3,7 @@ from flask import Flask, render_template, redirect, url_for, flash, request, jso
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_bcrypt import Bcrypt
-from models import db, User, Post, Comment, Like, Transaction, Family, FamilyMember, Bill, Church
+from models import db, User, Post, Comment, Like, Transaction, Family, FamilyMember, Bill, Church, Schedule, ScheduleMember, Plan
 from dotenv import load_dotenv
 from datetime import datetime, date
 from werkzeug.utils import secure_filename
@@ -129,13 +129,23 @@ def pastor_required(f):
 
 @app.before_request
 def check_approval_and_reset():
-    """Intercepta login se não estiver aprovado ou precisar de reset de senha."""
-    allowed_endpoints = {'login', 'register', 'logout', 'static', 'set_new_password', 'pending_approval'}
+    """Intercepta login se não estiver aprovado, precisar de reset, ou se a assinatura expirar."""
+    allowed_endpoints = {'login', 'register', 'logout', 'static', 'set_new_password', 'pending_approval', 'payment_blocked', 'checkout_payment', 'webhook_mp', 'home', 'saas_checkout'}
     if current_user.is_authenticated:
         if request.endpoint not in allowed_endpoints:
             # Superadmin não precisa de aprovação nem igreja
             if current_user.is_superadmin:
                 return
+            
+            c = current_user.church
+            if c:
+                # Checagem de assinatura SaaS
+                if c.subscription_status != 'active':
+                    return redirect(url_for('payment_blocked'))
+                if c.subscription_expires_at and datetime.utcnow() > c.subscription_expires_at:
+                    c.subscription_status = 'expired'
+                    db.session.commit()
+                    return redirect(url_for('payment_blocked'))
             
             if not current_user.is_approved:
                 return redirect(url_for('pending_approval'))
@@ -158,7 +168,153 @@ def home():
             return redirect(url_for('pending_approval'))
         else:
             return redirect(url_for('feed'))
-    return redirect(url_for('login'))
+    plans = Plan.query.filter_by(is_active=True).all()
+    return render_template('saas_landing.html', plans=plans)
+
+@app.route('/checkout', methods=['GET', 'POST'])
+def saas_checkout():
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+    plan_id = request.args.get('plan_id')
+    plan = Plan.query.get(plan_id) if plan_id else None
+    if request.method == 'POST':
+        c_name = request.form.get('church_name')
+        c_slug = request.form.get('church_slug')
+        p_name = request.form.get('pastor_name')
+        p_email = request.form.get('pastor_email')
+        p_pass = request.form.get('pastor_password')
+        
+        if Church.query.filter_by(slug=c_slug).first() or User.query.filter_by(email=p_email).first():
+            flash('Este slug de igreja ou e-mail já estão em uso. Tente outro.', 'danger')
+            return redirect(url_for('saas_checkout'))
+            
+        # Cria a igreja vinculada ao plano
+        new_church = Church(name=c_name, slug=c_slug, plan_id=request.form.get('plan_id') or plan_id)
+        db.session.add(new_church)
+        db.session.flush() # Para pegar o id
+        
+        # Cria o pastor
+        hashed = bcrypt.generate_password_hash(p_pass).decode('utf-8')
+        new_pastor = User(
+            name=p_name, email=p_email, password=hashed,
+            role='pastor', church_id=new_church.id, is_approved=True
+        )
+        db.session.add(new_pastor)
+        db.session.commit()
+        
+        # Faz login automaticamente
+        login_user(new_pastor)
+        flash('Conta criada! Conclua o pagamento para ativar sua Plataforma.', 'info')
+        return redirect(url_for('checkout_payment'))
+        
+    return render_template('saas_checkout.html', plan=plan, plan_id=plan_id)
+
+@app.route('/checkout/payment')
+@login_required
+def checkout_payment():
+    if current_user.church.subscription_status == 'active':
+        return redirect(url_for('home'))
+        
+    # Integração com Mercado Pago (SaaS)
+    # A chave do Superadmin deve estar no .env como SAAS_MP_ACCESS_TOKEN
+    mp_token = os.getenv('SAAS_MP_ACCESS_TOKEN')
+    
+    init_point = None
+    if mp_token:
+        try:
+            sdk = mercadopago.SDK(mp_token)
+            
+            # Checa se há plano, se não, vincula o plano padrão (fallback para contas criadas antes da atualização)
+            plan = current_user.church.plan
+            if not plan:
+                plan = Plan.query.first()
+                current_user.church.plan = plan
+                db.session.commit()
+            
+            final_price = plan.promotional_price if plan.promotional_price else plan.price
+            
+            host_url = request.host_url.rstrip('/')
+            
+            # O Mercado Pago recusa IPs de rede local (como 192.168.x.x) nas back_urls.
+            # Se detectarmos que é um teste local via IP, usamos um domínio falso para a API aceitar.
+            is_local_ip = any(ip in host_url for ip in ['192.168.', '10.0.', '172.16.', '127.0.0.1'])
+            safe_host = "https://mychurch.squareweb.app" if is_local_ip else host_url
+            
+            preference_data = {
+                "items": [
+                    {
+                        "title": f"Assinatura ChurchSaaS - {plan.name}",
+                        "quantity": 1,
+                        "currency_id": "BRL",
+                        "unit_price": final_price
+                    }
+                ],
+                "payer": {
+                    "email": current_user.email
+                },
+                "external_reference": str(current_user.church.id), # ID da Igreja
+                "back_urls": {
+                    "success": safe_host + url_for('home'),
+                    "failure": safe_host + url_for('checkout_payment'),
+                    "pending": safe_host + url_for('checkout_payment')
+                },
+                "auto_return": "approved"
+            }
+            # Mercado Pago rejeita notification_url sem https
+            if not is_local_ip and host_url.startswith('https://'):
+                preference_data["notification_url"] = host_url + url_for('webhook_mp')
+                
+            preference_response = sdk.preference().create(preference_data)
+            
+            if preference_response.get("status") in [200, 201]:
+                init_point = preference_response["response"]["init_point"]
+            else:
+                flash(f"Erro Mercado Pago: {preference_response.get('response', {}).get('message', 'Erro desconhecido')}", "danger")
+                print("Erro MP:", preference_response)
+        except Exception as e:
+            flash(f"Erro interno ao gerar pagamento: {str(e)}", "danger")
+            print("Erro ao gerar Preference SaaS MP:", e)
+            
+    return render_template('checkout_payment.html', init_point=init_point)
+
+@app.route('/payment-blocked')
+@login_required
+def payment_blocked():
+    return render_template('payment_blocked.html')
+
+@app.route('/webhook/mp', methods=['POST'])
+def webhook_mp():
+    # O Mercado Pago enviará notificações sobre os pagamentos aqui.
+    try:
+        mp_token = os.getenv('SAAS_MP_ACCESS_TOKEN')
+        if not mp_token:
+            return jsonify({"status": "ignored"}), 200
+            
+        topic = request.args.get('topic') or request.args.get('type')
+        payment_id = request.args.get('id') or request.args.get('data.id')
+        
+        if (topic == 'payment' or topic == 'payment.created') and payment_id:
+            sdk = mercadopago.SDK(mp_token)
+            payment_info = sdk.payment().get(payment_id)
+            
+            if payment_info["status"] == 200:
+                payment = payment_info["response"]
+                if payment["status"] == "approved":
+                    # Pega o ID da Igreja que enviamos no external_reference
+                    church_id_str = payment.get("external_reference")
+                    if church_id_str and church_id_str.isdigit():
+                        church = Church.query.get(int(church_id_str))
+                        if church:
+                            church.subscription_status = 'active'
+                            # Adiciona 30 dias de acesso
+                            import datetime as dt
+                            church.subscription_expires_at = dt.datetime.utcnow() + dt.timedelta(days=30)
+                            church.mp_payment_id = str(payment_id)
+                            db.session.commit()
+    except Exception as e:
+        print("Webhook Error:", e)
+    
+    return jsonify({"status": "ok"}), 200
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -349,10 +505,65 @@ def superadmin_edit_user(uid):
         
         db.session.commit()
         flash(f'Usuário {u.name} atualizado com sucesso.', 'success')
-        return redirect(url_for('superadmin_users'))
-    return render_template('superadmin_user_edit.html', u=u, churches=churches)
+        return redirect(url_for('superadmin_dashboard'))
+    return render_template('superadmin_church_edit.html', c=c)
 
-# ── Pastor Settings & Users ───────────────────────────────────────────────────
+@app.route('/superadmin/church/<int:cid>/grant_free_access', methods=['POST'])
+@superadmin_required
+def grant_free_access(cid):
+    c = Church.query.get_or_404(cid)
+    c.subscription_status = 'active'
+    import datetime as dt
+    # Libera por 10 anos
+    c.subscription_expires_at = dt.datetime.utcnow() + dt.timedelta(days=3650)
+    db.session.commit()
+    flash(f'Acesso gratuito concedido à igreja {c.name}!', 'success')
+    return redirect(url_for('superadmin_dashboard'))
+
+# ── Superadmin: Planos e Promoções ──────────────────────────────────────────
+@app.route('/superadmin/plans')
+@superadmin_required
+def superadmin_plans():
+    plans = Plan.query.all()
+    return render_template('superadmin_plans.html', plans=plans)
+
+@app.route('/superadmin/plans/add', methods=['POST'])
+@superadmin_required
+def add_plan():
+    p = Plan(
+        name=request.form.get('name'),
+        price=float(request.form.get('price')),
+        promotional_price=float(request.form.get('promotional_price')) if request.form.get('promotional_price') else None,
+        features=request.form.get('features')
+    )
+    db.session.add(p)
+    db.session.commit()
+    flash('Plano criado!', 'success')
+    return redirect(url_for('superadmin_plans'))
+
+@app.route('/superadmin/plans/<int:pid>/edit', methods=['POST'])
+@superadmin_required
+def edit_plan(pid):
+    p = Plan.query.get_or_404(pid)
+    p.name = request.form.get('name')
+    p.price = float(request.form.get('price'))
+    p.promotional_price = float(request.form.get('promotional_price')) if request.form.get('promotional_price') else None
+    p.features = request.form.get('features')
+    p.is_active = 'is_active' in request.form
+    db.session.commit()
+    flash('Plano atualizado!', 'success')
+    return redirect(url_for('superadmin_plans'))
+
+@app.route('/superadmin/plans/<int:pid>/delete', methods=['POST'])
+@superadmin_required
+def delete_plan(pid):
+    p = Plan.query.get_or_404(pid)
+    db.session.delete(p)
+    db.session.commit()
+    flash('Plano removido.', 'info')
+    return redirect(url_for('superadmin_plans'))
+
+# ── Igreja (Configurações) ────────────────────────────────────────────────────
 @app.route('/settings', methods=['GET', 'POST'])
 @pastor_required
 def church_settings():
@@ -387,6 +598,7 @@ def church_settings():
         c.has_offerings = 'has_offerings' in request.form
         c.has_finance = 'has_finance' in request.form
         c.has_bills = 'has_bills' in request.form
+        c.has_schedules = 'has_schedules' in request.form
         
         db.session.commit()
         flash('Configurações da igreja atualizadas.', 'success')
@@ -1012,6 +1224,63 @@ def profile():
         flash('Perfil atualizado!', 'success')
         return redirect(url_for('profile'))
     return render_template('profile.html')
+
+# ── Escalas (Schedules) ───────────────────────────────────────────────────────
+@app.route('/schedules')
+@login_required
+def schedules():
+    if not current_user.church.has_schedules:
+        flash('Módulo de Escalas desativado para esta igreja.', 'warning')
+        return redirect(url_for('feed'))
+    all_schedules = Schedule.query.filter_by(church_id=current_user.church_id).order_by(Schedule.event_date.asc()).all()
+    return render_template('schedules.html', schedules=all_schedules)
+
+@app.route('/schedules/add', methods=['POST'])
+@pastor_required
+def add_schedule():
+    title = request.form.get('title')
+    date_str = request.form.get('event_date')
+    desc = request.form.get('description')
+    if title and date_str:
+        dt = datetime.strptime(date_str, '%Y-%m-%dT%H:%M')
+        s = Schedule(church_id=current_user.church_id, title=title, event_date=dt, description=desc)
+        db.session.add(s)
+        db.session.commit()
+        flash('Escala criada!', 'success')
+    return redirect(url_for('schedules'))
+
+@app.route('/schedules/<int:sid>/delete', methods=['POST'])
+@pastor_required
+def delete_schedule(sid):
+    s = Schedule.query.filter_by(id=sid, church_id=current_user.church_id).first_or_404()
+    db.session.delete(s)
+    db.session.commit()
+    flash('Escala excluída.', 'info')
+    return redirect(url_for('schedules'))
+
+@app.route('/schedules/<int:sid>/member/add', methods=['POST'])
+@pastor_required
+def add_schedule_member(sid):
+    s = Schedule.query.filter_by(id=sid, church_id=current_user.church_id).first_or_404()
+    uid = request.form.get('user_id')
+    role = request.form.get('role')
+    if uid and role:
+        sm = ScheduleMember(schedule_id=s.id, user_id=uid, role=role)
+        db.session.add(sm)
+        db.session.commit()
+        flash('Membro adicionado à escala!', 'success')
+    return redirect(url_for('schedules'))
+
+@app.route('/schedules/member/<int:smid>/delete', methods=['POST'])
+@pastor_required
+def delete_schedule_member(smid):
+    sm = ScheduleMember.query.get_or_404(smid)
+    # Verifica se pertence à igreja do pastor
+    if sm.schedule.church_id == current_user.church_id:
+        db.session.delete(sm)
+        db.session.commit()
+        flash('Membro removido da escala.', 'info')
+    return redirect(url_for('schedules'))
 
 if __name__ == '__main__':
     with app.app_context():

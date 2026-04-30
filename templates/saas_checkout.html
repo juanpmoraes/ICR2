@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout | SaaS Church</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 2rem 5%;
+            margin: 0;
+            background-image: radial-gradient(circle at top right, #312e81 0%, var(--bg-main) 50%);
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            max-width: 1000px;
+            width: 100%;
+        }
+        .checkout-info {
+            padding: 2rem 0;
+        }
+        .checkout-info h1 {
+            font-size: 2.5rem;
+            margin-top: 0;
+            color: #fff;
+        }
+        .checkout-info p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+        .order-summary {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.05);
+            padding: 1.5rem;
+            border-radius: 16px;
+            margin-top: 2rem;
+        }
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Esquerda: Info -->
+        <div class="checkout-info">
+            <a href="/" style="color:var(--primary); text-decoration:none; font-weight:600; display:inline-block; margin-bottom:2rem;"><i class="fa-solid fa-arrow-left"></i> Voltar</a>
+            
+            <h1>Crie sua conta na<br>Plataforma SaaS</h1>
+            <p>Você está a um passo de revolucionar a gestão e o engajamento da sua Igreja.</p>
+            
+            <div class="order-summary">
+                {% if plan %}
+                <div style="display:flex; justify-content:space-between; margin-bottom:1rem; align-items:center;">
+                    <strong style="font-size:1.2rem;">{{ plan.name }}</strong>
+                    <span style="font-size:1.2rem; font-weight:700;">R$ {{"%.2f"|format(plan.promotional_price or plan.price)}}<span style="font-size:0.9rem; color:var(--text-muted)">/mês</span></span>
+                </div>
+                <ul style="color:var(--text-muted); padding-left:1.2rem; margin:0; line-height:1.8;">
+                    {% if plan.features %}
+                        {% for feature in plan.features.split('\n') %}
+                            {% if feature.strip() %}<li>{{ feature }}</li>{% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </ul>
+                {% else %}
+                <div style="display:flex; justify-content:space-between; margin-bottom:1rem; align-items:center;">
+                    <strong style="font-size:1.2rem;">Plano Padrão</strong>
+                    <span style="font-size:1.2rem; font-weight:700;">R$ 97,00<span style="font-size:0.9rem; color:var(--text-muted)">/mês</span></span>
+                </div>
+                {% endif %}
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div style="margin-top:2rem; padding:1rem; border-radius:8px; background:rgba(239, 68, 68, 0.1); border:1px solid #ef4444; color:#fca5a5;">
+                            <i class="fa-solid fa-circle-exclamation"></i> {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <!-- Direita: Formulário -->
+        <div class="card glass" style="padding: 2.5rem;">
+            <form method="POST">
+                {% if plan_id %}
+                <input type="hidden" name="plan_id" value="{{ plan_id }}">
+                {% endif %}
+                <h3 style="margin-top:0; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:0.5rem;">Dados da Igreja</h3>
+                
+                <div class="form-group">
+                    <label>Nome Oficial da Igreja</label>
+                    <input type="text" name="church_name" class="form-control" placeholder="Ex: Igreja Cristo Vive" required>
+                </div>
+                <div class="form-group">
+                    <label>Slug (URL de acesso curto)</label>
+                    <input type="text" name="church_slug" class="form-control" placeholder="Ex: cristovive (sem espaços)" pattern="^[a-zA-Z0-9_-]+$" title="Apenas letras, números e traços" required>
+                </div>
+
+                <h3 style="margin-top:2rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:0.5rem;">Conta do Administrador</h3>
+                
+                <div class="form-group">
+                    <label>Nome do Pastor / Admin</label>
+                    <input type="text" name="pastor_name" class="form-control" placeholder="Ex: Pr. João Silva" required>
+                </div>
+                <div class="form-group">
+                    <label>E-mail (Login principal)</label>
+                    <input type="email" name="pastor_email" class="form-control" placeholder="seu@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Senha Segura</label>
+                    <input type="password" name="pastor_password" class="form-control" placeholder="Mínimo 6 caracteres" minlength="6" required>
+                </div>
+                
+                <!-- Aqui no futuro entraria os campos do gateway de pagamento (Cartão/PIX) -->
+                <div style="margin: 2rem 0; padding: 1rem; background:rgba(255,255,255,0.05); border-radius:8px; text-align:center;">
+                    <i class="fa-solid fa-credit-card" style="font-size:2rem; color:var(--text-muted); margin-bottom:0.5rem;"></i>
+                    <p style="margin:0; font-size:0.9rem; color:var(--text-muted);">Integração de pagamento simulada para testes do SaaS.</p>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width:100%;"><i class="fa-solid fa-check"></i> Assinar e Criar Plataforma</button>
+            </form>
+        </div>
+    </div>
+
+</body>
+</html>

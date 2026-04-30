@@ -41,6 +41,13 @@ class Church(db.Model):
     has_offerings = db.Column(db.Boolean, nullable=False, default=True)
     has_finance   = db.Column(db.Boolean, nullable=False, default=True)
     has_bills     = db.Column(db.Boolean, nullable=False, default=True)
+    has_schedules = db.Column(db.Boolean, nullable=False, default=True)
+
+    # Assinatura SaaS
+    subscription_status     = db.Column(db.String(20), nullable=False, default='pending') # pending, active, expired
+    subscription_expires_at = db.Column(db.DateTime, nullable=True)
+    mp_subscription_id      = db.Column(db.String(100), nullable=True)
+    plan_id                 = db.Column(db.Integer, db.ForeignKey('plan.id'), nullable=True)
 
     # Relacionamentos
     members      = db.relationship('User',        backref='church',  lazy=True,
@@ -154,3 +161,36 @@ class Bill(db.Model):
     created_at  = db.Column(db.DateTime,    nullable=False, default=datetime.utcnow)
     paid_at     = db.Column(db.DateTime,    nullable=True)
     church_id   = db.Column(db.Integer, db.ForeignKey('church.id'), nullable=True)
+
+class Schedule(db.Model):
+    """Escalas de eventos e ministérios da igreja."""
+    id          = db.Column(db.Integer, primary_key=True)
+    church_id   = db.Column(db.Integer, db.ForeignKey('church.id'), nullable=False)
+    title       = db.Column(db.String(150), nullable=False)
+    event_date  = db.Column(db.DateTime, nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    created_at  = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relação com os membros escalados
+    members = db.relationship('ScheduleMember', backref='schedule', lazy=True, cascade="all, delete-orphan")
+
+class ScheduleMember(db.Model):
+    """Membro escalado em um evento (com papel específico)."""
+    id          = db.Column(db.Integer, primary_key=True)
+    schedule_id = db.Column(db.Integer, db.ForeignKey('schedule.id'), nullable=False)
+    user_id     = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    role        = db.Column(db.String(100), nullable=False) # Ex: "Louvor - Baterista", "Recepção"
+    
+    user = db.relationship('User', backref='schedules_assigned')
+
+class Plan(db.Model):
+    """Planos de assinatura do SaaS e Promoções"""
+    id                = db.Column(db.Integer, primary_key=True)
+    name              = db.Column(db.String(100), nullable=False)
+    price             = db.Column(db.Float, nullable=False)
+    promotional_price = db.Column(db.Float, nullable=True)
+    features          = db.Column(db.Text, nullable=True) # separado por quebra de linha
+    is_active         = db.Column(db.Boolean, default=True)
+    created_at        = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    churches = db.relationship('Church', backref='plan', lazy=True)

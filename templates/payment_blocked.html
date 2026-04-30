@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assinatura Bloqueada | SaaS Church</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --bg-dark: #0f172a;
+            --bg-card: rgba(30, 41, 59, 0.7);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-image: radial-gradient(circle at center, #312e81 0%, var(--bg-dark) 60%);
+        }
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            padding: 3rem;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .card i {
+            font-size: 4rem;
+            color: #ef4444;
+            margin-bottom: 1.5rem;
+        }
+        h2 { margin: 0 0 1rem 0; color: #fff; }
+        p { color: var(--text-muted); line-height: 1.6; margin-bottom: 2rem; }
+        .btn {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            padding: 1rem;
+            width: 100%;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            box-sizing: border-box;
+            transition: 0.3s;
+        }
+        .btn:hover { background: #4338CA; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <i class="fa-solid fa-lock"></i>
+        <h2>Acesso Bloqueado</h2>
+        <p>A assinatura mensal da igreja <strong>{{ current_user.church.name }}</strong> encontra-se pendente ou expirada. Regularize o pagamento para restaurar o acesso de todos os membros.</p>
+        
+        {% if current_user.role == 'pastor' %}
+        <a href="{{ url_for('checkout_payment') }}" class="btn"><i class="fa-solid fa-credit-card"></i> Pagar Assinatura Agora</a>
+        {% else %}
+        <div style="padding:1rem; background:rgba(255,255,255,0.05); border-radius:8px; color:var(--text-muted); font-size:0.9rem;">
+            Apenas o Pastor Administrador pode realizar o pagamento.
+        </div>
+        {% endif %}
+        
+        <div style="margin-top: 1.5rem;">
+            <a href="{{ url_for('logout') }}" style="color:var(--text-muted); text-decoration:none; font-size:0.9rem;">Sair da conta</a>
+        </div>
+    </div>
+</body>
+</html>

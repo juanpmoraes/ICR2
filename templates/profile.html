@@ -45,7 +45,7 @@
                     ||| | || ||| | ||| || |
                 </div>
                 <div style="font-family:monospace; font-size:0.7rem; color:var(--text-muted); letter-spacing:2px; margin-top:0.5rem;">
-                    {{ current_user.id|string|rjust(8, '0') }}-ICR
+                    {{ "%08d"|format(current_user.id) }}-ICR
                 </div>
             </div>
         </div>

@@ -65,7 +65,7 @@ with app.app_context():
                 'family.church_id')
 
             # ── Church: modules ──────────────────────────────────────────────────
-            for col in ['has_reports', 'has_lives', 'has_families', 'has_offerings', 'has_finance', 'has_bills']:
+            for col in ['has_reports', 'has_lives', 'has_families', 'has_offerings', 'has_finance', 'has_bills', 'has_schedules']:
                 run_safe(conn, f"ALTER TABLE church ADD COLUMN {col} TINYINT(1) NOT NULL DEFAULT 1", f'church.{col}')
 
             # ── Church: appearance & public info ─────────────────────────────────
@@ -78,6 +78,12 @@ with app.app_context():
                               ('description', "NULL"),
                               ('address', "NULL")]:
                 run_safe(conn, f"ALTER TABLE church ADD COLUMN {col} VARCHAR(255) DEFAULT {dflt}", f'church.{col}')
+
+            # ── Church: SaaS Subscription ────────────────────────────────────────
+            run_safe(conn, "ALTER TABLE church ADD COLUMN subscription_status VARCHAR(20) NOT NULL DEFAULT 'pending'", 'church.subscription_status')
+            run_safe(conn, "ALTER TABLE church ADD COLUMN subscription_expires_at DATETIME NULL", 'church.subscription_expires_at')
+            run_safe(conn, "ALTER TABLE church ADD COLUMN mp_subscription_id VARCHAR(100) NULL", 'church.mp_subscription_id')
+            run_safe(conn, "ALTER TABLE church ADD COLUMN plan_id INT NULL REFERENCES plan(id)", 'church.plan_id')
 
 
 
@@ -104,7 +110,7 @@ with app.app_context():
             run_safe(conn,
                 "ALTER TABLE family ADD COLUMN church_id INTEGER",
                 'family.church_id')
-            for col in ['has_reports', 'has_lives', 'has_families', 'has_offerings', 'has_finance', 'has_bills']:
+            for col in ['has_reports', 'has_lives', 'has_families', 'has_offerings', 'has_finance', 'has_bills', 'has_schedules']:
                 run_safe(conn, f"ALTER TABLE church ADD COLUMN {col} INTEGER NOT NULL DEFAULT 1", f'church.{col}')
             for col, dflt in [('secondary_color', "'#b5952f'"),
                               ('card_bg_color', "'rgba(255, 255, 255, 0.05)'"),
@@ -115,6 +121,27 @@ with app.app_context():
                               ('description', "NULL"),
                               ('address', "NULL")]:
                 run_safe(conn, f"ALTER TABLE church ADD COLUMN {col} TEXT DEFAULT {dflt}", f'church.{col}')
+
+            # ── Church: SaaS Subscription ────────────────────────────────────────
+            run_safe(conn, "ALTER TABLE church ADD COLUMN subscription_status TEXT NOT NULL DEFAULT 'pending'", 'church.subscription_status')
+            run_safe(conn, "ALTER TABLE church ADD COLUMN subscription_expires_at DATETIME NULL", 'church.subscription_expires_at')
+            run_safe(conn, "ALTER TABLE church ADD COLUMN mp_subscription_id TEXT NULL", 'church.mp_subscription_id')
+            run_safe(conn, "ALTER TABLE church ADD COLUMN plan_id INTEGER", 'church.plan_id')
+
+    # Cria as tabelas recém-adicionadas (como Schedule, ScheduleMember e Plan)
+    db.create_all()
+    
+    # Cria plano padrão se não existir nenhum
+    from models import Plan
+    if not Plan.query.first():
+        default_plan = Plan(
+            name='Acesso Ilimitado',
+            price=97.00,
+            features='Membros Ilimitados\nSite Público Exclusivo\nRecebimento PIX Integrado\nSuporte Prioritário'
+        )
+        db.session.add(default_plan)
+        db.session.commit()
+        print('✅  Plano padrão R$97 criado.')
 
     print('\n✅  Migração concluída!')
     print('👉  Próximo passo: python create_admin.py para criar o superadmin.')

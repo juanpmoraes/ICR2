@@ -1,9 +1,14 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="card glass">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h2 class="card-title" style="margin:0;"><i class="fa-solid fa-crown"></i> Painel Superadmin</h2>
-        <a href="{{ url_for('add_church') }}" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Nova Igreja</a>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+        <h2 style="margin:0;"><i class="fa-solid fa-shield-halved" style="color:var(--primary);"></i> Painel Superadmin</h2>
+        <div>
+            <a href="{{ url_for('superadmin_plans') }}" class="btn btn-primary" style="background:var(--primary-dark); margin-right: 0.5rem;">
+                <i class="fa-solid fa-tags"></i> Gerenciar Planos
+            </a>
+            <a href="{{ url_for('add_church') }}" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Nova Igreja</a>
+        </div>
     </div>
 </div>
 
@@ -18,6 +23,7 @@
                     <th style="padding:1rem;">Nome</th>
                     <th style="padding:1rem;">Slug</th>
                     <th style="padding:1rem;">Data Cadastro</th>
+                    <th style="padding:1rem;">Status</th>
                     <th style="padding:1rem; text-align:right;">Ações</th>
                 </tr>
             </thead>
@@ -28,7 +34,28 @@
                     <td style="padding:1rem; font-weight:600;">{{ c.name }}</td>
                     <td style="padding:1rem;">{{ c.slug }}</td>
                     <td style="padding:1rem;">{{ c.created_at.strftime('%d/%m/%Y') }}</td>
+                    <td style="padding:1rem;">
+                        {% if c.subscription_status == 'active' %}
+                        <span style="color:#4ade80; font-weight:600;"><i class="fa-solid fa-check-circle"></i> Ativa</span>
+                        <div style="font-size:0.8rem; color:var(--text-muted);">
+                            {% if c.subscription_expires_at %}
+                            Exp: {{ c.subscription_expires_at.strftime('%d/%m/%Y') }}
+                            {% endif %}
+                        </div>
+                        {% elif c.subscription_status == 'expired' %}
+                        <span style="color:#f87171; font-weight:600;"><i class="fa-solid fa-xmark-circle"></i> Vencida</span>
+                        {% else %}
+                        <span style="color:#fbbf24; font-weight:600;"><i class="fa-solid fa-clock"></i> Pendente</span>
+                        {% endif %}
+                    </td>
                     <td style="padding:1rem; text-align:right;">
+                        {% if c.subscription_status != 'active' %}
+                        <form action="{{ url_for('grant_free_access', cid=c.id) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('Liberar acesso desta igreja por 10 anos?');">
+                            <button type="submit" class="btn" style="padding:0.4rem 0.8rem; font-size:0.8rem; margin-right:0.5rem; background:rgba(74, 222, 128, 0.2); color:#4ade80; border:1px solid #4ade80;">
+                                <i class="fa-solid fa-gift"></i> Liberar Acesso
+                            </button>
+                        </form>
+                        {% endif %}
                         <a href="{{ url_for('edit_church', cid=c.id) }}" class="btn btn-primary" style="padding:0.4rem 0.8rem; font-size:0.9rem;">
                             <i class="fa-solid fa-pen"></i> Editar
                         </a>
