@@ -146,9 +146,13 @@
 
         <div class="sidebar-footer">
             <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:1rem;">
+                {% if current_user.profile_pic_url %}
+                <img src="{{ url_for('static', filename=current_user.profile_pic_url) }}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid var(--primary);">
+                {% else %}
                 <div style="width:32px;height:32px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:.8rem;">
                     {{ current_user.name[0]|upper }}
                 </div>
+                {% endif %}
                 <div style="overflow:hidden;">
                     <p style="margin:0;font-size:.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ current_user.name }}</p>
                     <p style="margin:0;font-size:.7rem;color:var(--text-muted);text-transform:uppercase;">{{ current_user.role }}</p>

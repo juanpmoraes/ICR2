@@ -36,9 +36,13 @@
                     <td style="padding:1rem;color:var(--text-muted);">{{ u.id }}</td>
                     <td style="padding:1rem;">
                         <div style="display:flex;align-items:center;gap:.75rem;">
+                            {% if u.profile_pic_url %}
+                            <img src="{{ url_for('static', filename=u.profile_pic_url) }}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid var(--primary);">
+                            {% else %}
                             <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:var(--bg-dark);font-weight:bold;flex-shrink:0;">
                                 {{ u.name[0].upper() }}
                             </div>
+                            {% endif %}
                             {{ u.name }}
                         </div>
                     </td>
@@ -59,9 +63,18 @@
                     </td>
                     <td style="padding:1rem;color:var(--text-muted);">{{ u.created_at.strftime('%d/%m/%Y') }}</td>
                     <td style="padding:1rem;">
-                        <a href="{{ url_for('edit_user', uid=u.id) }}" class="btn" style="padding:.4rem .9rem;background:var(--primary);color:var(--bg-dark);font-size:.85rem;text-decoration:none;">
-                            <i class="fa-solid fa-pen"></i> Editar
-                        </a>
+                        <div style="display:flex; gap:0.5rem;">
+                            <a href="{{ url_for('edit_user', uid=u.id) }}" class="btn" style="padding:.4rem .9rem;background:var(--primary);color:var(--bg-dark);font-size:.85rem;text-decoration:none;">
+                                <i class="fa-solid fa-pen"></i> Editar
+                            </a>
+                            {% if u.profile_pic_url %}
+                            <form action="{{ url_for('remove_profile_pic', uid=u.id) }}" method="POST">
+                                <button type="submit" class="btn" style="padding:.4rem .9rem;background:rgba(239,83,80,0.1);color:#ef5350;border:1px solid rgba(239,83,80,0.3);font-size:.85rem;" title="Remover Foto">
+                                    <i class="fa-solid fa-image-slash"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}

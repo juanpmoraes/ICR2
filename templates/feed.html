@@ -47,7 +47,11 @@
 <div class="card glass" style="margin-bottom:2rem;">
     <div id="trigger" onclick="document.getElementById('composer').style.display='block';this.style.display='none';"
          style="display:flex;align-items:center;gap:1rem;cursor:pointer;">
+        {% if current_user.profile_pic_url %}
+        <img src="{{ url_for('static', filename=current_user.profile_pic_url) }}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1px solid var(--primary);">
+        {% else %}
         <div style="width:40px;height:40px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:var(--bg-dark);font-weight:bold;flex-shrink:0;">{{ current_user.name[0].upper() }}</div>
+        {% endif %}
         <div style="flex:1;background:rgba(255,255,255,0.06);border:1px solid var(--glass-border);border-radius:25px;padding:.7rem 1.2rem;color:var(--text-muted);">O que você quer compartilhar?</div>
     </div>
 
@@ -83,7 +87,11 @@
     <!-- Header -->
     <div style="display:flex;align-items:center;justify-content:space-between;padding:1.2rem 1.5rem 0;">
         <div style="display:flex;align-items:center;gap:.85rem;">
+            {% if post.author.profile_pic_url %}
+            <img src="{{ url_for('static', filename=post.author.profile_pic_url) }}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:1px solid var(--primary);">
+            {% else %}
             <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--primary),#b8860b);display:flex;align-items:center;justify-content:center;color:var(--bg-dark);font-weight:bold;font-size:1.1rem;flex-shrink:0;">{{ post.author.name[0].upper() }}</div>
+            {% endif %}
             <div>
                 <div style="display:flex;align-items:center;gap:.4rem;">
                     <strong style="color:var(--text-main);">{{ post.author.name }}</strong>

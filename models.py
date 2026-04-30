@@ -103,6 +103,7 @@ class User(db.Model, UserMixin):
     family_id           = db.Column(db.Integer, db.ForeignKey('family.id'), nullable=True)
     created_at          = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     must_reset_password = db.Column(db.Boolean, nullable=False, default=False)
+    profile_pic_url     = db.Column(db.String(255), nullable=True)
 
     posts        = db.relationship('Post',        backref='author', lazy=True)
     comments     = db.relationship('Comment',     backref='author', lazy=True)
