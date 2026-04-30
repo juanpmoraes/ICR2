@@ -1,139 +1,214 @@
-{% extends "base.html" %}
-{% block content %}
+<style>
+    #chatContainer::-webkit-scrollbar {
+        width: 6px;
+    }
+    #chatContainer::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.02);
+    }
+    #chatContainer::-webkit-scrollbar-thumb {
+        background: var(--primary);
+        border-radius: 10px;
+    }
+    #chatContainer::-webkit-scrollbar-thumb:hover {
+        background: #3b82f6;
+    }
+    
+    .attach-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--glass-border);
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .attach-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--primary);
+        border-color: var(--primary);
+    }
+    .attach-btn.has-file {
+        background: var(--primary);
+        color: white;
+    }
+</style>
+
 <div style="margin-bottom:1.5rem;">
     <a href="{{ url_for('support') }}" style="text-decoration:none; color:var(--text-muted); font-size:0.9rem;">
         <i class="fa-solid fa-arrow-left"></i> Voltar para Suporte
     </a>
 </div>
 
-<div class="card glass" style="max-width:900px; margin:0 auto; padding:2rem;">
-    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:2rem;">
+<div class="card glass" style="max-width:900px; margin:0 auto; padding:0; display:flex; flex-direction:column; height:80vh; overflow:hidden;">
+    <!-- Cabeçalho Fixo -->
+    <div style="padding:1.5rem 2rem; border-bottom:1px solid var(--glass-border); display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02);">
         <div>
-            <h2 style="margin:0; color:var(--primary);">Chamado #{{ ticket.id }}: {{ ticket.subject }}</h2>
-            <p style="margin:0.5rem 0 0 0; color:var(--text-muted); font-size:0.9rem;">
-                Aberto por {{ ticket.user.name }} ({{ ticket.church.name }})
+            <h2 style="margin:0; color:var(--primary); font-size:1.3rem;">Chamado #{{ ticket.id }}: {{ ticket.subject }}</h2>
+            <p style="margin:0.2rem 0 0 0; color:var(--text-muted); font-size:0.85rem;">
+                {{ ticket.user.name }} • {{ ticket.church.name }}
             </p>
         </div>
         <span id="ticketStatus" class="badge" style="
             {% if ticket.status == 'aberto' %}background:#3b82f6;
             {% elif ticket.status == 'resolvido' %}background:#10b981;
             {% else %}background:#6b7280;{% endif %}
-            color:white; padding:0.4rem 1rem; border-radius:20px; font-size:0.9rem;
+            color:white; padding:0.4rem 1rem; border-radius:20px; font-size:0.85rem;
         ">{{ ticket.status|capitalize }}</span>
     </div>
 
-    <!-- Container do Chat -->
-    <div id="chatContainer" style="display:flex; flex-direction:column; gap:1.5rem; margin-bottom:2rem; max-height:600px; overflow-y:auto; padding-right:1rem;">
+    <!-- Container do Chat Rolável -->
+    <div id="chatContainer" style="flex:1; overflow-y:auto; padding:2rem; display:flex; flex-direction:column; gap:1.5rem; background:rgba(0,0,0,0.1);">
         <!-- Mensagem Inicial -->
-        <div style="background:rgba(255,255,255,0.03); padding:1.5rem; border-radius:15px; border:1px solid var(--glass-border); width:fit-content; max-width:85%; align-self:flex-start;">
+        <div style="background:rgba(255,255,255,0.05); padding:1.2rem; border-radius:15px; border:1px solid var(--glass-border); width:fit-content; max-width:80%; align-self:flex-start;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; gap:2rem;">
-                <strong style="color:var(--primary); font-size:0.8rem;">PASTOR: {{ ticket.user.name }}</strong>
-                <small style="color:var(--text-muted); font-size:0.75rem;">{{ ticket.created_at.strftime('%d/%m %H:%M') }}</small>
+                <strong style="color:var(--primary); font-size:0.75rem;">PASTOR: {{ ticket.user.name }}</strong>
+                <small style="color:var(--text-muted); font-size:0.7rem;">{{ ticket.created_at.strftime('%d/%m %H:%M') }}</small>
             </div>
-            <p style="margin:0; line-height:1.6; white-space:pre-wrap;">{{ ticket.message }}</p>
+            <p style="margin:0; line-height:1.5; font-size:0.95rem; white-space:pre-wrap;">{{ ticket.message }}</p>
         </div>
 
         {% for msg in ticket.messages %}
             <div style="
-                padding:1.5rem; border-radius:15px; width:fit-content; max-width:85%;
+                padding:1.2rem; border-radius:15px; width:fit-content; max-width:80%;
                 {% if msg.user.is_superadmin %}
-                    background:rgba(16, 185, 129, 0.05); border:1px solid #10b98144; align-self:flex-end;
+                    background:rgba(16, 185, 129, 0.1); border:1px solid #10b98144; align-self:flex-end;
                 {% else %}
-                    background:rgba(255,255,255,0.03); border:1px solid var(--glass-border); align-self:flex-start;
+                    background:rgba(255,255,255,0.05); border:1px solid var(--glass-border); align-self:flex-start;
                 {% endif %}
             ">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; gap:2rem;">
-                    <strong style="font-size:0.8rem; {% if msg.user.is_superadmin %}color:#10b981;{% else %}color:var(--primary);{% endif %}">
+                    <strong style="font-size:0.75rem; {% if msg.user.is_superadmin %}color:#10b981;{% else %}color:var(--primary);{% endif %}">
                         {% if msg.user.is_superadmin %}SUPORTE: {{ msg.user.name }}{% else %}PASTOR: {{ msg.user.name }}{% endif %}
                     </strong>
-                    <small style="color:var(--text-muted); font-size:0.75rem;">{{ msg.created_at.strftime('%d/%m %H:%M') }}</small>
+                    <small style="color:var(--text-muted); font-size:0.7rem;">{{ msg.created_at.strftime('%d/%m %H:%M') }}</small>
                 </div>
-                <p style="margin:0; line-height:1.6; white-space:pre-wrap;">{{ msg.message }}</p>
+                <p style="margin:0; line-height:1.5; font-size:0.95rem; white-space:pre-wrap;">{{ msg.message }}</p>
                 {% if msg.image_url %}
-                    <img src="{{ url_for('static', filename=msg.image_url) }}" style="max-width:100%; border-radius:10px; margin-top:1rem; cursor:pointer;" onclick="window.open(this.src)">
+                    <img src="{{ url_for('static', filename=msg.image_url) }}" style="max-width:100%; border-radius:10px; margin-top:0.8rem; cursor:pointer;" onclick="window.open(this.src)">
                 {% endif %}
             </div>
         {% endfor %}
     </div>
 
-    <!-- Área de Resposta -->
-    <div id="replyArea">
+    <!-- Área de Resposta Fixa Embaixo -->
+    <div id="replyArea" style="padding:1.5rem 2rem; border-top:1px solid var(--glass-border); background:rgba(255,255,255,0.02);">
     {% if current_user.is_superadmin %}
         {% if not ticket.assigned_to %}
-            <div style="text-align:center; padding:2rem; background:rgba(255,255,255,0.02); border-radius:15px; border:1px dashed var(--glass-border);">
+            <div style="text-align:center;">
                 <form action="{{ url_for('view_ticket', tid=ticket.id) }}" method="POST">
                     <input type="hidden" name="action" value="assign">
-                    <button type="submit" class="btn btn-primary" style="padding:1rem 2rem;">
+                    <button type="submit" class="btn btn-primary">
                         <i class="fa-solid fa-hand-holding-hand"></i> Assumir este Chamado
                     </button>
                 </form>
             </div>
         {% elif ticket.assigned_to == current_user.id %}
-            <div class="card glass" style="background:rgba(255,255,255,0.02); margin:0;">
-                <h3 style="margin-top:0;">Enviar Resposta</h3>
-                <form action="{{ url_for('view_ticket', tid=ticket.id) }}" method="POST" enctype="multipart/form-data">
-                    <input type="hidden" name="action" value="respond">
-                    <div class="form-group">
-                        <textarea name="response" class="form-control" rows="3" placeholder="Escreva aqui..."></textarea>
+            <form id="replyForm" method="POST" enctype="multipart/form-data" style="display:flex; flex-direction:column; gap:1rem;">
+                <input type="hidden" name="action" value="respond">
+                <div style="display:flex; gap:1rem; align-items:flex-end;">
+                    <div style="flex:1;">
+                        <textarea name="response" class="form-control" rows="2" placeholder="Sua resposta..." style="background:rgba(255,255,255,0.05);"></textarea>
                     </div>
-                    <div style="display:flex; gap:1rem; align-items:center; margin-top:1rem;">
-                        <div style="flex:1;">
-                            <label style="font-size:0.8rem; color:var(--text-muted);">Anexar Imagem</label>
-                            <input type="file" name="image" class="form-control" accept="image/*" style="font-size:0.8rem;">
-                        </div>
-                        <div style="flex:1;">
-                            <label style="font-size:0.8rem; color:var(--text-muted);">Status</label>
-                            <select name="status" class="form-control" style="font-size:0.8rem;">
-                                <option value="aberto" {% if ticket.status == 'aberto' %}selected{% endif %}>Aberto</option>
-                                <option value="em_analise" {% if ticket.status == 'em_analise' %}selected{% endif %}>Em Análise</option>
-                                <option value="resolvido" {% if ticket.status == 'resolvido' %}selected{% endif %}>Resolvido</option>
-                                <option value="fechado" {% if ticket.status == 'fechado' %}selected{% endif %}>Fechado</option>
-                            </select>
-                        </div>
+                    <div style="width:180px;">
+                        <select name="status" class="form-control" style="font-size:0.85rem; height:42px;">
+                            <option value="aberto" {% if ticket.status == 'aberto' %}selected{% endif %}>Aberto</option>
+                            <option value="em_analise" {% if ticket.status == 'em_analise' %}selected{% endif %}>Em Análise</option>
+                            <option value="resolvido" {% if ticket.status == 'resolvido' %}selected{% endif %}>Resolvido</option>
+                            <option value="fechado" {% if ticket.status == 'fechado' %}selected{% endif %}>Fechado</option>
+                        </select>
                     </div>
-                    <button type="submit" class="btn btn-primary" style="width:100%; margin-top:1rem;">Enviar Mensagem</button>
-                </form>
-            </div>
+                    <button type="submit" class="btn btn-primary" style="height:42px; padding:0 1.5rem;">Enviar</button>
+                </div>
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <label for="imageInput" class="attach-btn" id="attachLabel">
+                        <i class="fa-solid fa-paperclip"></i>
+                    </label>
+                    <input type="file" name="image" id="imageInput" accept="image/*" style="display:none;" onchange="handleFile(this)">
+                    <span id="fileName" style="font-size:0.75rem; color:var(--text-muted);">Anexar imagem</span>
+                </div>
+            </form>
         {% else %}
-            <div style="text-align:center; color:#ef4444; padding:1rem; border:1px solid #ef444444; border-radius:10px;">
-                Chamado sob os cuidados de {{ ticket.admin_assigned.name }}
+            <div style="text-align:center; color:#ef4444; font-size:0.9rem;">
+                <i class="fa-solid fa-lock"></i> Chamado sob os cuidados de {{ ticket.admin_assigned.name }}
             </div>
         {% endif %}
     {% else %}
         {% if ticket.status != 'fechado' and ticket.status != 'resolvido' %}
             {% if ticket.response %}
-                <div class="card glass" style="background:rgba(255,255,255,0.02); margin:0;">
-                    <form action="{{ url_for('view_ticket', tid=ticket.id) }}" method="POST" enctype="multipart/form-data">
-                        <div class="form-group">
-                            <textarea name="message" class="form-control" rows="3" placeholder="Sua resposta..."></textarea>
+                <form id="replyForm" method="POST" enctype="multipart/form-data" style="display:flex; flex-direction:column; gap:1rem;">
+                    <div style="display:flex; gap:1rem; align-items:flex-end;">
+                        <div style="flex:1;">
+                            <textarea name="message" class="form-control" rows="2" placeholder="Digite sua resposta..." style="background:rgba(255,255,255,0.05);"></textarea>
                         </div>
-                        <div class="form-group">
-                            <label style="font-size:0.8rem; color:var(--text-muted);">Anexar Imagem</label>
-                            <input type="file" name="image" class="form-control" accept="image/*">
-                        </div>
-                        <button type="submit" class="btn btn-primary" style="width:100%;">Enviar Mensagem</button>
-                    </form>
-                </div>
+                        <button type="submit" class="btn btn-primary" style="height:42px; padding:0 1.5rem;">Enviar</button>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <label for="imageInputPastor" class="attach-btn" id="attachLabelPastor">
+                            <i class="fa-solid fa-paperclip"></i>
+                        </label>
+                        <input type="file" name="image" id="imageInputPastor" accept="image/*" style="display:none;" onchange="handleFile(this, 'Pastor')">
+                        <span id="fileNamePastor" style="font-size:0.75rem; color:var(--text-muted);">Anexar imagem</span>
+                    </div>
+                </form>
             {% else %}
-                <p style="text-align:center; color:var(--text-muted);">Aguardando primeira resposta do suporte...</p>
+                <p style="text-align:center; color:var(--text-muted); margin:0; font-size:0.9rem;">Aguardando primeira resposta do suporte...</p>
             {% endif %}
         {% else %}
-            <p style="text-align:center; color:#10b981;">Chamado Finalizado.</p>
+            <p style="text-align:center; color:#10b981; margin:0; font-size:0.9rem;">Chamado Finalizado.</p>
         {% endif %}
     {% endif %}
     </div>
 </div>
 
 <script>
+    function handleFile(input, suffix = '') {
+        const label = document.getElementById('attachLabel' + suffix);
+        const nameSpan = document.getElementById('fileName' + suffix);
+        if (input.files && input.files[0]) {
+            label.classList.add('has-file');
+            nameSpan.innerText = input.files[0].name;
+            nameSpan.style.color = 'var(--primary)';
+        } else {
+            label.classList.remove('has-file');
+            nameSpan.innerText = 'Anexar imagem';
+            nameSpan.style.color = 'var(--text-muted)';
+        }
+    }
+
     const tid = {{ ticket.id }};
     const chatContainer = document.getElementById('chatContainer');
-    const currentUserId = {{ current_user.id }};
+    const replyForm = document.getElementById('replyForm');
 
     function scrollToBottom() {
         chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
     scrollToBottom();
+
+    if (replyForm) {
+        replyForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(replyForm);
+            
+            try {
+                const response = await fetch(window.location.href, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    replyForm.reset();
+                    updateChat(); 
+                }
+            } catch (err) {
+                console.error('Erro ao enviar:', err);
+            }
+        };
+    }
 
     async function updateChat() {
         try {
@@ -142,26 +217,25 @@
             
             if (data.messages) {
                 let html = '';
-                data.messages.forEach((m, index) => {
+                data.messages.forEach((m) => {
                     const isSuperadmin = m.is_admin;
                     const align = isSuperadmin ? 'flex-end' : 'flex-start';
-                    const bg = isSuperadmin ? 'rgba(16, 185, 129, 0.05)' : 'rgba(255,255,255,0.03)';
+                    const bg = isSuperadmin ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.05)';
                     const border = isSuperadmin ? '1px solid #10b98144' : '1px solid var(--glass-border)';
                     const color = isSuperadmin ? '#10b981' : 'var(--primary)';
                     
                     html += `
-                        <div style="padding:1.5rem; border-radius:15px; width:fit-content; max-width:85%; align-self:${align}; background:${bg}; border:${border};">
+                        <div style="padding:1.2rem; border-radius:15px; width:fit-content; max-width:80%; align-self:${align}; background:${bg}; border:${border};">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; gap:2rem;">
-                                <strong style="font-size:0.8rem; color:${color};">${m.user}</strong>
-                                <small style="color:var(--text-muted); font-size:0.75rem;">${m.created_at}</small>
+                                <strong style="font-size:0.75rem; color:${color};">${m.user}</strong>
+                                <small style="color:var(--text-muted); font-size:0.7rem;">${m.created_at}</small>
                             </div>
-                            <p style="margin:0; line-height:1.6; white-space:pre-wrap;">${m.message}</p>
-                            ${m.image ? `<img src="${m.image}" style="max-width:100%; border-radius:10px; margin-top:1rem; cursor:pointer;" onclick="window.open(this.src)">` : ''}
+                            <p style="margin:0; line-height:1.5; font-size:0.95rem; white-space:pre-wrap;">${m.message}</p>
+                            ${m.image ? `<img src="${m.image}" style="max-width:100%; border-radius:10px; margin-top:0.8rem; cursor:pointer;" onclick="window.open(this.src)">` : ''}
                         </div>
                     `;
                 });
                 
-                // Só atualiza se o conteúdo for diferente (para evitar flickering)
                 if (chatContainer.innerHTML.length !== html.length) {
                     const wasAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop <= chatContainer.clientHeight + 100;
                     chatContainer.innerHTML = html;
@@ -169,10 +243,16 @@
                 }
             }
             
-            // Atualiza status
             const statusBadge = document.getElementById('ticketStatus');
             if (statusBadge) {
                 statusBadge.innerText = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+                if (data.status === 'resolvido' || data.status === 'fechado') {
+                    statusBadge.style.background = '#10b981';
+                } else if (data.status === 'aberto') {
+                    statusBadge.style.background = '#3b82f6';
+                } else {
+                    statusBadge.style.background = '#6b7280';
+                }
             }
             
         } catch (error) {
@@ -180,7 +260,6 @@
         }
     }
 
-    // Polling a cada 3 segundos
     setInterval(updateChat, 3000);
 </script>
 {% endblock %}
