@@ -98,7 +98,15 @@
 
     <!-- Área de Resposta Fixa Embaixo -->
     <div id="replyArea" style="padding:1.5rem 2rem; border-top:1px solid var(--glass-border); background:rgba(255,255,255,0.02);">
-    {% if current_user.is_superadmin %}
+    {% if ticket.status in ['resolvido', 'fechado'] %}
+        <div style="text-align:center; padding:1rem; background:rgba(16, 185, 129, 0.05); border-radius:10px; border:1px solid #10b98144;">
+            <i class="fa-solid fa-circle-check" style="color:#10b981; font-size:1.2rem; margin-bottom:0.5rem;"></i>
+            <p style="color:#10b981; margin:0; font-size:0.9rem; font-weight:500;">
+                Este chamado foi marcado como <strong>{{ ticket.status|capitalize }}</strong>. 
+                Nenhuma nova mensagem pode ser enviada.
+            </p>
+        </div>
+    {% elif current_user.is_superadmin %}
         {% if not ticket.assigned_to %}
             <div style="text-align:center;">
                 <form action="{{ url_for('view_ticket', tid=ticket.id) }}" method="POST">
@@ -150,28 +158,24 @@
             </div>
         {% endif %}
     {% else %}
-        {% if ticket.status != 'fechado' and ticket.status != 'resolvido' %}
-            {% if ticket.response %}
-                <form id="replyForm" method="POST" enctype="multipart/form-data" style="display:flex; flex-direction:column; gap:1rem;">
-                    <div style="display:flex; gap:1rem; align-items:flex-end;">
-                        <div style="flex:1;">
-                            <textarea name="message" class="form-control" rows="2" placeholder="Digite sua resposta..." style="background:rgba(255,255,255,0.05);"></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-primary" style="height:42px; padding:0 1.5rem;">Enviar</button>
+        {% if ticket.response %}
+            <form id="replyForm" method="POST" enctype="multipart/form-data" style="display:flex; flex-direction:column; gap:1rem;">
+                <div style="display:flex; gap:1rem; align-items:flex-end;">
+                    <div style="flex:1;">
+                        <textarea name="message" class="form-control" rows="2" placeholder="Digite sua resposta..." style="background:rgba(255,255,255,0.05);"></textarea>
                     </div>
-                    <div style="display:flex; align-items:center; gap:0.5rem;">
-                        <label for="imageInputPastor" class="attach-btn" id="attachLabelPastor">
-                            <i class="fa-solid fa-paperclip"></i>
-                        </label>
-                        <input type="file" name="image" id="imageInputPastor" accept="image/*" style="display:none;" onchange="handleFile(this, 'Pastor')">
-                        <span id="fileNamePastor" style="font-size:0.75rem; color:var(--text-muted);">Anexar imagem</span>
-                    </div>
-                </form>
-            {% else %}
-                <p style="text-align:center; color:var(--text-muted); margin:0; font-size:0.9rem;">Aguardando primeira resposta do suporte...</p>
-            {% endif %}
+                    <button type="submit" class="btn btn-primary" style="height:42px; padding:0 1.5rem;">Enviar</button>
+                </div>
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <label for="imageInputPastor" class="attach-btn" id="attachLabelPastor">
+                        <i class="fa-solid fa-paperclip"></i>
+                    </label>
+                    <input type="file" name="image" id="imageInputPastor" accept="image/*" style="display:none;" onchange="handleFile(this, 'Pastor')">
+                    <span id="fileNamePastor" style="font-size:0.75rem; color:var(--text-muted);">Anexar imagem</span>
+                </div>
+            </form>
         {% else %}
-            <p style="text-align:center; color:#10b981; margin:0; font-size:0.9rem;">Chamado Finalizado.</p>
+            <p style="text-align:center; color:var(--text-muted); margin:0; font-size:0.9rem;">Aguardando primeira resposta do suporte...</p>
         {% endif %}
     {% endif %}
     </div>
