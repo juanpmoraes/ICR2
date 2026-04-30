@@ -16,7 +16,7 @@
         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
             <h3 style="margin:0; color:var(--primary);">{{ p.name }}</h3>
             <div style="display:flex; gap:0.5rem;">
-                <button onclick="editPlan({{ p.id }}, '{{ p.name }}', {{ p.price }}, '{{ p.promotional_price or '' }}', '{{ p.features|replace('\n', '\\n') }}', {{ p.is_active|lower }}, {{ p.duration_months }})" style="background:none; border:none; color:var(--text-muted); cursor:pointer;">
+                <button onclick="editPlan({{ p.id }}, '{{ p.name }}', {{ p.price }}, '{{ p.promotional_price or '' }}', '{{ p.features|replace('\n', '\\n')|replace("'", "\\'") }}', {{ p.is_active|lower }}, {{ p.duration_months or 1 }})" style="background:none; border:none; color:var(--text-muted); cursor:pointer;">
                     <i class="fa-solid fa-pen"></i>
                 </button>
                 <form action="{{ url_for('delete_plan', pid=p.id) }}" method="POST" onsubmit="return confirm('Excluir este plano?');">
