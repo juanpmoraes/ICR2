@@ -2,11 +2,27 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Igreja Cristã Resplandecer</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="{{ church.primary_color if church else '#d4af37' }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260429b">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260430a">
+    {% if church %}
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family={{ church.font_family }}:wght@300;400;500;600;700&display=swap');
+        :root {
+            --primary: {{ church.primary_color }};
+            --primary-dark: {{ church.secondary_color }};
+            --bg-dark: {{ church.bg_color }};
+            --bg-card: {{ church.card_bg_color }};
+            --text-main: {{ church.text_main_color }};
+            --text-muted: {{ church.text_muted_color }};
+            --font-main: '{{ church.font_family }}', sans-serif;
+        }
+    </style>
+    {% endif %}
 </head>
 <body>
     {% if current_user.is_authenticated %}
@@ -20,8 +36,12 @@
             <span></span><span></span><span></span>
         </button>
         <div style="display:flex;align-items:center;gap:.6rem;">
+            {% if church and church.logo_url %}
+            <img src="{{ url_for('static', filename=church.logo_url) }}" style="height:1.8rem; object-fit:contain;">
+            {% else %}
             <i class="fa-solid fa-church" style="color:var(--primary);font-size:1.3rem;"></i>
-            <span style="color:var(--primary);font-weight:700;font-size:1rem;">ICR</span>
+            {% endif %}
+            <span style="color:var(--primary);font-weight:700;font-size:1rem;">{{ church.name if church else 'Painel' }}</span>
         </div>
         <div style="width:40px;"></div><!-- spacer para centralizar logo -->
     </header>
@@ -29,10 +49,13 @@
     <nav class="sidebar glass" id="sidebar">
         <!-- Logo fixo no topo -->
         <div class="sidebar-header">
+            {% if church and church.logo_url %}
+            <img src="{{ url_for('static', filename=church.logo_url) }}" style="height:2.5rem; object-fit:contain; max-width:60px;">
+            {% else %}
             <i class="fa-solid fa-church" style="font-size:2rem;color:var(--primary);"></i>
+            {% endif %}
             <div>
-                <h2 style="margin:0;color:var(--primary);font-size:1.1rem;line-height:1;">Igreja Cristã</h2>
-                <span style="color:var(--text-muted);font-size:.8rem;">Resplandecer</span>
+                <h2 style="margin:0;color:var(--primary);font-size:1.1rem;line-height:1.2;">{{ church.name if church else 'Superadmin' }}</h2>
             </div>
             <!-- Botão fechar sidebar (mobile) -->
             <button class="sidebar-close" onclick="closeSidebar()" aria-label="Fechar menu">
@@ -40,34 +63,54 @@
             </button>
         </div>
 
-        <!-- Links roláveis -->
         <div class="sidebar-scroll">
+            {% if current_user.is_superadmin %}
+            <p class="nav-label">SUPERADMIN</p>
+            <ul class="nav-links">
+                <li><a href="{{ url_for('superadmin_dashboard') }}" onclick="closeSidebar()"><i class="fa-solid fa-crown"></i> Igrejas</a></li>
+                <li><a href="{{ url_for('superadmin_users') }}" onclick="closeSidebar()"><i class="fa-solid fa-users"></i> Usuários Globais</a></li>
+            </ul>
+            {% else %}
             <p class="nav-label">GERAL</p>
             <ul class="nav-links">
                 <li><a href="{{ url_for('feed') }}" onclick="closeSidebar()"><i class="fa-solid fa-house"></i> Início</a></li>
+                {% if church and church.has_lives %}
                 <li><a href="{{ url_for('lives') }}" onclick="closeSidebar()"><i class="fa-solid fa-tower-broadcast"></i> Lives</a></li>
+                {% endif %}
+                {% if church and church.has_offerings %}
                 <li><a href="{{ url_for('offerings') }}" onclick="closeSidebar()"><i class="fa-solid fa-hand-holding-dollar"></i> Dízimos e Ofertas</a></li>
+                {% endif %}
                 <li><a href="{{ url_for('profile') }}" onclick="closeSidebar()"><i class="fa-solid fa-user"></i> Meu Perfil</a></li>
             </ul>
 
-            {% if current_user.role in ['admin', 'pastor'] %}
+            {% if current_user.role == 'pastor' %}
             <p class="nav-label" style="margin-top:1.5rem;">ADMINISTRAÇÃO</p>
             <ul class="nav-links">
-                <li><a href="{{ url_for('admin_dashboard') }}" onclick="closeSidebar()"><i class="fa-solid fa-shield-halved"></i> Painel Admin</a></li>
+                <li><a href="{{ url_for('admin_dashboard') }}" onclick="closeSidebar()"><i class="fa-solid fa-shield-halved"></i> Painel Igreja</a></li>
                 <li><a href="{{ url_for('members') }}" onclick="closeSidebar()"><i class="fa-solid fa-users"></i> Membros</a></li>
+                {% if church and church.has_families %}
                 <li><a href="{{ url_for('families') }}" onclick="closeSidebar()"><i class="fa-solid fa-people-roof"></i> Famílias</a></li>
+                {% endif %}
+                {% if church and church.has_finance %}
                 <li><a href="{{ url_for('finance') }}" onclick="closeSidebar()"><i class="fa-solid fa-chart-line"></i> Financeiro</a></li>
+                {% endif %}
+                {% if church and church.has_bills %}
                 <li><a href="{{ url_for('bills') }}" onclick="closeSidebar()"><i class="fa-solid fa-file-invoice"></i> Contas a Pagar</a></li>
+                {% endif %}
+                {% if church and church.has_reports %}
                 <li><a href="{{ url_for('reports') }}" onclick="closeSidebar()"><i class="fa-solid fa-chart-pie"></i> Relatórios</a></li>
+                {% endif %}
+                <li><a href="{{ url_for('church_settings') }}" onclick="closeSidebar()"><i class="fa-solid fa-sliders"></i> Configurações</a></li>
             </ul>
             {% endif %}
-        </div>
+            {% endif %}
 
-        <!-- Logout sempre fixo na base -->
-        <div class="sidebar-footer">
-            <a href="{{ url_for('logout') }}" class="logout-btn">
-                <i class="fa-solid fa-right-from-bracket"></i> Sair
-            </a>
+            <!-- Sair dentro do scroll — sempre visível no mobile -->
+            <div style="margin-top:1.5rem;border-top:1px solid var(--glass-border);padding-top:1rem;">
+                <a href="{{ url_for('logout') }}" class="logout-btn">
+                    <i class="fa-solid fa-right-from-bracket"></i> Sair
+                </a>
+            </div>
         </div>
     </nav>
     <main class="main-content" id="mainContent">
@@ -86,8 +129,8 @@
     {% else %}
     <!-- Login/Register Area centered -->
     <div style="display: flex; width: 100%; min-height: 100vh; align-items: center; justify-content: center; flex-direction: column;">
-        <div class="logo-area" style="margin-bottom: 2rem;">
-            <h1 style="color: var(--primary); font-size: 2.5rem;"><i class="fa-solid fa-church"></i> Igreja Cristã Resplandecer</h1>
+        <div class="logo-area" style="margin-bottom: 2rem; text-align: center; padding: 0 1rem;">
+            <h1 style="color: var(--primary); font-size: 2.5rem; text-align: center;"><i class="fa-solid fa-church"></i> Plataforma de Igrejas</h1>
         </div>
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -103,6 +146,15 @@
     {% endif %}
 
     <script>
+        // PWA Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                .then(reg => console.log('PWA Service Worker Registrado!'))
+                .catch(err => console.log('Falha no PWA SW:', err));
+            });
+        }
+
         // Smooth animations for alerts
         setTimeout(() => {
             const alerts = document.querySelectorAll('.alert');

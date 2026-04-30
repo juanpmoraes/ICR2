@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card glass" style="max-width:600px; margin:0 auto;">
+    <h2 class="card-title"><i class="fa-solid fa-user-plus"></i> Adicionar Usuário</h2>
+    <p style="color:var(--text-muted); margin-bottom:2rem;">Cadastre um novo membro ou pastor na sua igreja. A conta já será criada ativa e aprovada para acessar o sistema.</p>
+
+    <form method="POST">
+        <div class="form-group">
+            <label>Nome Completo</label>
+            <input type="text" name="name" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label>E-mail</label>
+            <input type="email" name="email" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label>Senha Inicial</label>
+            <input type="password" name="password" class="form-control" required minlength="6">
+            <small style="color:var(--text-muted); margin-top:0.5rem; display:block;">O usuário poderá trocar a senha depois.</small>
+        </div>
+        
+        <div class="form-group">
+            <label>Cargo / Papel</label>
+            <select name="role" class="form-control" style="background:var(--bg-dark); color:var(--text-main);">
+                <option value="membro">Membro</option>
+                <option value="pastor">Pastor</option>
+            </select>
+        </div>
+
+        <div style="display:flex; gap:1rem; margin-top:2rem;">
+            <a href="{{ url_for('members') }}" class="btn" style="background:rgba(255,255,255,0.1); color:var(--text-main);">Cancelar</a>
+            <button type="submit" class="btn btn-primary" style="flex:1;">Cadastrar Usuário</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card glass" style="max-width:600px; margin:0 auto;">
+    <h2 class="card-title">{{ action }} Igreja</h2>
+    <form method="POST">
+        <div class="form-group">
+            <label>Nome da Igreja *</label>
+            <input type="text" name="name" class="form-control" value="{{ c.name if c else '' }}" required>
+        </div>
+        <div class="form-group">
+            <label>Slug (identificador único, ex: icr-sede) *</label>
+            <input type="text" name="slug" class="form-control" value="{{ c.slug if c else '' }}" required>
+        </div>
+
+        {% if not c %}
+        <hr style="border:0; border-top:1px solid var(--glass-border); margin:2rem 0;">
+        <h3 style="margin-bottom:1rem; color:var(--primary);">Dados do Pastor Principal</h3>
+        <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:1.5rem;">
+            Se preenchido, cria automaticamente a conta do pastor e vincula a esta igreja.
+        </p>
+        <div class="form-group">
+            <label>Nome do Pastor</label>
+            <input type="text" name="pastor_name" class="form-control">
+        </div>
+        <div class="form-group">
+            <label>E-mail do Pastor</label>
+            <input type="email" name="pastor_email" class="form-control">
+        </div>
+        <div class="form-group">
+            <label>Senha Provisória</label>
+            <input type="password" name="pastor_password" class="form-control">
+        </div>
+        {% endif %}
+
+        <div style="display:flex; gap:1rem; margin-top:2rem;">
+            <a href="{{ url_for('superadmin_dashboard') }}" class="btn" style="background:rgba(255,255,255,0.1); color:var(--text-main);">Cancelar</a>
+            <button type="submit" class="btn btn-primary" style="flex:1;">Salvar Igreja</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

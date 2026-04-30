@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card glass">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 class="card-title" style="margin:0;"><i class="fa-solid fa-user-check"></i> Membros Pendentes</h2>
+        <a href="{{ url_for('members') }}" class="btn" style="background:rgba(255,255,255,0.1);"><i class="fa-solid fa-users"></i> Ver Membros Aprovados</a>
+    </div>
+</div>
+
+<div class="card glass">
+    {% if pending %}
+    <div class="table-responsive">
+        <table style="width:100%; border-collapse:collapse; text-align:left;">
+            <thead>
+                <tr style="border-bottom:1px solid var(--glass-border); color:var(--text-muted);">
+                    <th style="padding:1rem;">Nome</th>
+                    <th style="padding:1rem;">E-mail</th>
+                    <th style="padding:1rem;">Data de Cadastro</th>
+                    <th style="padding:1rem; text-align:right;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in pending %}
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:1rem; font-weight:600;">{{ u.name }}</td>
+                    <td style="padding:1rem; color:var(--text-muted);">{{ u.email }}</td>
+                    <td style="padding:1rem; color:var(--text-muted);">{{ u.created_at.strftime('%d/%m/%Y') }}</td>
+                    <td style="padding:1rem; text-align:right;">
+                        <form action="{{ url_for('process_approval', uid=u.id, action='approve') }}" method="POST" style="display:inline;">
+                            <button type="submit" class="btn btn-primary" style="padding:0.4rem 0.8rem; font-size:0.9rem;">
+                                <i class="fa-solid fa-check"></i> Aprovar
+                            </button>
+                        </form>
+                        <form action="{{ url_for('process_approval', uid=u.id, action='reject') }}" method="POST" style="display:inline;" onsubmit="return confirm('Deseja rejeitar e remover este cadastro?');">
+                            <button type="submit" class="btn" style="padding:0.4rem 0.8rem; font-size:0.9rem; background:rgba(255,60,60,0.1); color:#ff5555; border:1px solid rgba(255,60,60,0.2);">
+                                <i class="fa-solid fa-xmark"></i> Rejeitar
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align:center; padding:3rem 0; color:var(--text-muted);">
+        <i class="fa-solid fa-check-double" style="font-size:3rem; color:var(--primary); margin-bottom:1rem; opacity:0.5;"></i>
+        <h3>Tudo em dia!</h3>
+        <p>Não há nenhum membro aguardando aprovação no momento.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

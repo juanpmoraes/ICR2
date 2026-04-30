@@ -1,22 +1,40 @@
 """
-Script para criar o primeiro usuário admin/pastor no banco de dados.
-Execute uma vez: python create_admin.py
+Script para criar o Superadmin inicial da plataforma.
+Este usuário não está vinculado a nenhuma igreja e tem acesso a todas.
 """
-from app import app, bcrypt
+from app import app
 from models import db, User
+from flask_bcrypt import Bcrypt
 
-with app.app_context():
-    email = input("Email do admin: ").strip()
-    name = input("Nome completo: ").strip()
-    password = input("Senha: ").strip()
-    role = input("Cargo (admin / pastor / membro) [padrão: admin]: ").strip() or "admin"
+bcrypt = Bcrypt()
 
-    existing = User.query.filter_by(email=email).first()
-    if existing:
-        print(f"❌ Já existe um usuário com o email '{email}'.")
-    else:
-        hashed = bcrypt.generate_password_hash(password).decode("utf-8")
-        user = User(name=name, email=email, password=hashed, role=role)
-        db.session.add(user)
-        db.session.commit()
-        print(f"✅ Usuário '{name}' criado com sucesso como '{role}'!")
+def create_superadmin():
+    email = input("E-mail do superadmin: ")
+    password = input("Senha: ")
+    name = input("Nome do superadmin [Super Admin]: ") or "Super Admin"
+
+    with app.app_context():
+        user = User.query.filter_by(email=email).first()
+        if user:
+            print("Usuário já existe. Atualizando para superadmin...")
+            user.is_superadmin = True
+            user.is_approved = True
+            user.password = bcrypt.generate_password_hash(password).decode('utf-8')
+            db.session.commit()
+            print("Atualizado com sucesso!")
+        else:
+            hashed = bcrypt.generate_password_hash(password).decode('utf-8')
+            admin = User(
+                name=name,
+                email=email,
+                password=hashed,
+                role='membro', # role não importa muito para superadmin
+                is_approved=True,
+                is_superadmin=True
+            )
+            db.session.add(admin)
+            db.session.commit()
+            print("Superadmin criado com sucesso!")
+
+if __name__ == '__main__':
+    create_superadmin()

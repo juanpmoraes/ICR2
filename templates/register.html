@@ -13,6 +13,15 @@
             <input type="email" id="email" name="email" class="form-control" required placeholder="seu@email.com">
         </div>
         <div class="form-group">
+            <label for="church_id">Igreja</label>
+            <select id="church_id" name="church_id" class="form-control" required style="background:var(--bg-dark); color:var(--text-main);">
+                <option value="" disabled selected>Selecione sua Igreja</option>
+                {% for c in churches %}
+                <option value="{{ c.id }}">{{ c.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
             <label for="password">Senha</label>
             <input type="password" id="password" name="password" class="form-control" required placeholder="Sua senha secreta">
         </div>

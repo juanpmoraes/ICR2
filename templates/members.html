@@ -4,7 +4,15 @@
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;">
     <div>
         <h1 style="color:var(--primary);"><i class="fa-solid fa-users"></i> Membros</h1>
-        <p style="color:var(--text-muted);">{{ users|length }} membros cadastrados</p>
+        <p style="color:var(--text-muted);">{{ users|length }} membros ativos</p>
+    </div>
+    <div style="display:flex; gap:1rem;">
+        {% if pending_count > 0 %}
+        <a href="{{ url_for('approve_members') }}" class="btn" style="background:rgba(239,83,80,0.15); color:#ef5350; border:1px solid rgba(239,83,80,0.3);">
+            <i class="fa-solid fa-user-clock"></i> {{ pending_count }} Pendente(s)
+        </a>
+        {% endif %}
+        <a href="{{ url_for('add_member') }}" class="btn btn-primary"><i class="fa-solid fa-user-plus"></i> Novo Usuário</a>
     </div>
 </div>
 
@@ -38,8 +46,6 @@
                     <td style="padding:1rem;">
                         {% if u.role == 'pastor' %}
                         <span style="background:rgba(212,175,55,0.2);color:var(--primary);padding:.3rem .8rem;border-radius:20px;font-size:.85rem;font-weight:600;"><i class="fa-solid fa-star"></i> Pastor</span>
-                        {% elif u.role == 'admin' %}
-                        <span style="background:rgba(239,83,80,0.15);color:#ef5350;padding:.3rem .8rem;border-radius:20px;font-size:.85rem;font-weight:600;"><i class="fa-solid fa-shield-halved"></i> Admin</span>
                         {% else %}
                         <span style="background:rgba(255,255,255,0.05);color:var(--text-muted);padding:.3rem .8rem;border-radius:20px;font-size:.85rem;"><i class="fa-solid fa-user"></i> Membro</span>
                         {% endif %}

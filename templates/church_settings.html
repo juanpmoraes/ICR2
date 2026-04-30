@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card glass" style="max-width:800px; margin:0 auto;">
+    <h2 class="card-title"><i class="fa-solid fa-sliders"></i> Configurações da Igreja</h2>
+    <p style="color:var(--text-muted); margin-bottom:2rem;">Personalize a aparência e integrações exclusivas da sua congregação.</p>
+
+    <form method="POST" enctype="multipart/form-data">
+        <h3 style="color:var(--text-main); margin-bottom:1rem;">Aparência</h3>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:2rem;">
+            <div class="form-group" style="margin:0;">
+                <label>Cor Primária (Hex)</label>
+                <div style="display:flex; align-items:center; gap:1rem;">
+                    <input type="color" value="{{ c.primary_color }}" name="primary_color" style="height:44px; width:44px; border:none; border-radius:8px; cursor:pointer;">
+                    <input type="text" name="primary_color_text" class="form-control" value="{{ c.primary_color }}" style="flex:1;" onchange="this.previousElementSibling.value=this.value" readonly>
+                </div>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label>Cor Secundária/Destaque</label>
+                <div style="display:flex; align-items:center; gap:1rem;">
+                    <input type="color" value="{{ c.secondary_color }}" name="secondary_color" style="height:44px; width:44px; border:none; border-radius:8px; cursor:pointer;">
+                    <input type="text" name="secondary_color_text" class="form-control" value="{{ c.secondary_color }}" style="flex:1;" onchange="this.previousElementSibling.value=this.value" readonly>
+                </div>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label>Cor de Fundo (Página)</label>
+                <div style="display:flex; align-items:center; gap:1rem;">
+                    <input type="color" value="{{ c.bg_color }}" name="bg_color" style="height:44px; width:44px; border:none; border-radius:8px; cursor:pointer;">
+                    <input type="text" name="bg_color_text" class="form-control" value="{{ c.bg_color }}" style="flex:1;" onchange="this.previousElementSibling.value=this.value" readonly>
+                </div>
+            </div>
+            
+            <div class="form-group" style="margin:0;">
+                <label>Cor de Fundo (Cards - ex: rgba)</label>
+                <input type="text" name="card_bg_color" class="form-control" value="{{ c.card_bg_color }}">
+            </div>
+            
+            <div class="form-group" style="margin:0;">
+                <label>Cor do Texto Principal</label>
+                <div style="display:flex; align-items:center; gap:1rem;">
+                    <input type="color" value="{{ c.text_main_color }}" name="text_main_color" style="height:44px; width:44px; border:none; border-radius:8px; cursor:pointer;">
+                    <input type="text" name="text_main_color_text" class="form-control" value="{{ c.text_main_color }}" style="flex:1;" onchange="this.previousElementSibling.value=this.value" readonly>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin:0;">
+                <label>Cor do Texto Secundário</label>
+                <input type="text" name="text_muted_color" class="form-control" value="{{ c.text_muted_color }}">
+            </div>
+
+            <div class="form-group" style="margin:0;">
+                <label>Família da Fonte</label>
+                <select name="font_family" class="form-control" style="background:var(--bg-dark); color:var(--text-main);">
+                    <option value="Inter" {% if c.font_family == 'Inter' %}selected{% endif %}>Inter</option>
+                    <option value="Roboto" {% if c.font_family == 'Roboto' %}selected{% endif %}>Roboto</option>
+                    <option value="Outfit" {% if c.font_family == 'Outfit' %}selected{% endif %}>Outfit</option>
+                    <option value="Poppins" {% if c.font_family == 'Poppins' %}selected{% endif %}>Poppins</option>
+                    <option value="Montserrat" {% if c.font_family == 'Montserrat' %}selected{% endif %}>Montserrat</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin:0; grid-column:1/-1;">
+                <label>Logotipo da Igreja (opcional)</label>
+                <input type="file" name="logo_file" class="form-control" accept="image/*">
+                {% if c.logo_url %}
+                <div style="margin-top:1rem;">
+                    <img src="{{ url_for('static', filename=c.logo_url) }}" alt="Logo Atual" style="height:60px; border-radius:8px;">
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <hr style="border:0; border-top:1px solid var(--glass-border); margin:2rem 0;">
+
+        <h3 style="color:var(--text-main); margin-bottom:1rem;">Módulos Ativos</h3>
+        <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1.5rem;">Ligue ou desligue os módulos que sua igreja vai utilizar.</p>
+        
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:2rem; background:rgba(0,0,0,0.2); padding:1.5rem; border-radius:10px;">
+            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                <input type="checkbox" name="has_lives" value="1" {% if c.has_lives %}checked{% endif %} style="width:1.2rem; height:1.2rem;">
+                <span style="font-weight:600;">Lives e Vídeos</span>
+            </label>
+            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                <input type="checkbox" name="has_families" value="1" {% if c.has_families %}checked{% endif %} style="width:1.2rem; height:1.2rem;">
+                <span style="font-weight:600;">Cadastro de Famílias</span>
+            </label>
+            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                <input type="checkbox" name="has_offerings" value="1" {% if c.has_offerings %}checked{% endif %} style="width:1.2rem; height:1.2rem;">
+                <span style="font-weight:600;">Dízimos e Ofertas (Pix)</span>
+            </label>
+            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                <input type="checkbox" name="has_finance" value="1" {% if c.has_finance %}checked{% endif %} style="width:1.2rem; height:1.2rem;">
+                <span style="font-weight:600;">Financeiro (Entradas/Saídas)</span>
+            </label>
+            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                <input type="checkbox" name="has_bills" value="1" {% if c.has_bills %}checked{% endif %} style="width:1.2rem; height:1.2rem;">
+                <span style="font-weight:600;">Contas a Pagar</span>
+            </label>
+            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                <input type="checkbox" name="has_reports" value="1" {% if c.has_reports %}checked{% endif %} style="width:1.2rem; height:1.2rem;">
+                <span style="font-weight:600;">Relatórios Gráficos</span>
+            </label>
+        </div>
+
+        <hr style="border:0; border-top:1px solid var(--glass-border); margin:2rem 0;">
+
+        <h3 style="color:var(--text-main); margin-bottom:1rem;">Redes Sociais</h3>
+        <div class="form-group">
+            <label>WhatsApp do Pastor (Ex: 5511999999999)</label>
+            <input type="text" name="pastor_whatsapp" class="form-control" value="{{ c.pastor_whatsapp or '' }}">
+        </div>
+        <div class="form-group">
+            <label>Link do Instagram</label>
+            <input type="url" name="church_instagram" class="form-control" value="{{ c.church_instagram or '' }}">
+        </div>
+
+        <hr style="border:0; border-top:1px solid var(--glass-border); margin:2rem 0;">
+
+        <h3 style="color:var(--text-main); margin-bottom:1rem;">Integrações (Dízimos & Ofertas)</h3>
+        <div class="form-group">
+            <label>MercadoPago Access Token (PIX)</label>
+            <input type="password" name="mp_access_token" class="form-control" value="{{ c.mp_access_token or '' }}">
+        </div>
+
+        <hr style="border:0; border-top:1px solid var(--glass-border); margin:2rem 0;">
+
+        <h3 style="color:var(--text-main); margin-bottom:1rem;">Integrações (YouTube / Lives)</h3>
+        <div class="form-group">
+            <label>YouTube API Key</label>
+            <input type="password" name="yt_api_key" class="form-control" value="{{ c.yt_api_key or '' }}">
+        </div>
+        <div class="form-group">
+            <label>YouTube Channel ID</label>
+            <input type="text" name="yt_channel_id" class="form-control" value="{{ c.yt_channel_id or '' }}">
+        </div>
+        <div class="form-group">
+            <label>Live Override ID (forçar vídeo específico)</label>
+            <input type="text" name="yt_live_override" class="form-control" value="{{ c.yt_live_override or '' }}">
+        </div>
+
+        <div style="margin-top:2.5rem;">
+            <button type="submit" class="btn btn-primary" style="width:100%;"><i class="fa-solid fa-floppy-disk"></i> Salvar Configurações</button>
+        </div>
+    </form>
+</div>
+<script>
+    // Sincroniza inputs type=color com os texts
+    document.querySelectorAll('input[type="color"]').forEach(input => {
+        input.addEventListener('input', e => {
+            e.target.nextElementSibling.value = e.target.value;
+        });
+    });
+</script>
+{% endblock %}

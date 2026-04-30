@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card glass">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 class="card-title" style="margin:0;"><i class="fa-solid fa-users-gear"></i> Todos os Usuários</h2>
+        <a href="{{ url_for('superadmin_add_user') }}" class="btn btn-primary"><i class="fa-solid fa-user-plus"></i> Novo Usuário</a>
+    </div>
+</div>
+
+{% if unassigned %}
+<div class="card glass" style="border: 1px solid #ef5350;">
+    <h3 style="margin-bottom:1.5rem;color:#ef5350;"><i class="fa-solid fa-triangle-exclamation"></i> Usuários Sem Igreja</h3>
+    <div class="table-responsive">
+        <table style="width:100%; border-collapse:collapse; text-align:left;">
+            <thead>
+                <tr style="border-bottom:1px solid var(--glass-border); color:var(--text-muted);">
+                    <th style="padding:1rem;">ID</th>
+                    <th style="padding:1rem;">Nome</th>
+                    <th style="padding:1rem;">E-mail</th>
+                    <th style="padding:1rem;">Superadmin?</th>
+                    <th style="padding:1rem; text-align:right;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in unassigned %}
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:1rem;">{{ u.id }}</td>
+                    <td style="padding:1rem; font-weight:600;">{{ u.name }}</td>
+                    <td style="padding:1rem;">{{ u.email }}</td>
+                    <td style="padding:1rem;">
+                        {% if u.is_superadmin %}
+                        <span style="color:#ef5350;"><i class="fa-solid fa-crown"></i> Sim</span>
+                        {% else %}
+                        <span style="color:var(--text-muted);">Não</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:1rem; text-align:right;">
+                        <a href="{{ url_for('superadmin_edit_user', uid=u.id) }}" class="btn btn-primary" style="padding:0.4rem 0.8rem; font-size:0.9rem;">
+                            <i class="fa-solid fa-pen"></i> Editar
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% for c in churches %}
+<div class="card glass">
+    <h3 style="margin-bottom:1.5rem;color:var(--primary);"><i class="fa-solid fa-church"></i> Igreja: {{ c.name }}</h3>
+    {% if c.members %}
+    <div class="table-responsive">
+        <table style="width:100%; border-collapse:collapse; text-align:left;">
+            <thead>
+                <tr style="border-bottom:1px solid var(--glass-border); color:var(--text-muted);">
+                    <th style="padding:1rem;">Nome</th>
+                    <th style="padding:1rem;">E-mail</th>
+                    <th style="padding:1rem;">Cargo</th>
+                    <th style="padding:1rem;">Status</th>
+                    <th style="padding:1rem; text-align:right;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in c.members %}
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:1rem; font-weight:600;">{{ u.name }}</td>
+                    <td style="padding:1rem;">{{ u.email }}</td>
+                    <td style="padding:1rem;">
+                        {% if u.role == 'pastor' %}
+                        <span style="color:var(--primary);"><i class="fa-solid fa-star"></i> Pastor</span>
+                        {% else %}
+                        <span style="color:var(--text-muted);"><i class="fa-solid fa-user"></i> Membro</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:1rem;">
+                        {% if u.is_approved %}
+                        <span style="color:#4caf50;"><i class="fa-solid fa-check"></i> Aprovado</span>
+                        {% else %}
+                        <span style="color:#ff9800;"><i class="fa-solid fa-clock"></i> Pendente</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:1rem; text-align:right;">
+                        <a href="{{ url_for('superadmin_edit_user', uid=u.id) }}" class="btn btn-primary" style="padding:0.4rem 0.8rem; font-size:0.9rem;">
+                            <i class="fa-solid fa-pen"></i> Editar
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color:var(--text-muted); text-align:center;">Nenhum membro nesta igreja.</p>
+    {% endif %}
+</div>
+{% endfor %}
+
+{% endblock %}

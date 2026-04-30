@@ -1,15 +1,16 @@
-import os, uuid
-from flask import Flask, render_template, redirect, url_for, flash, request, jsonify
+import os, uuid, time
+from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_bcrypt import Bcrypt
-from models import db, User, Post, Comment, Like, Transaction, Family, FamilyMember, Bill
+from models import db, User, Post, Comment, Like, Transaction, Family, FamilyMember, Bill, Church
 from dotenv import load_dotenv
 from datetime import datetime, date
 from werkzeug.utils import secure_filename
+from collections import defaultdict
 import mercadopago
 import requests
-from collections import defaultdict
+from functools import wraps
 
 load_dotenv()
 
@@ -46,7 +47,6 @@ def detect_file_type(filename):
     return 'file'
 
 def save_upload(file):
-    """Salva o arquivo e retorna (file_path_relativo, file_type, file_name_original)."""
     orig = secure_filename(file.filename)
     ext  = orig.rsplit('.', 1)[-1].lower() if '.' in orig else ''
     uid  = uuid.uuid4().hex
@@ -56,32 +56,27 @@ def save_upload(file):
     ftype = detect_file_type(orig)
     return rel, ftype, orig
 
-mp = mercadopago.SDK(os.getenv("MERCADOPAGO_ACCESS_TOKEN"))
-
-# ── Cache YouTube (evita bater na API a cada request) ────────────────────────
+# ── Cache YouTube ────────────────────────────────────────────────────────────
 _yt_cache = {}
 YT_CACHE_TTL = 60  # segundos
 
-def _yt_api(params: dict):
-    """Faz request na YouTube Data API com cache simples em memória."""
-    import time
-    cache_key = str(sorted(params.items()))
+def _yt_api(church, params: dict):
+    if not church: return {}
+    cache_key = str(church.id) + "_" + str(sorted(params.items()))
     cached = _yt_cache.get(cache_key)
     if cached and time.time() - cached['ts'] < YT_CACHE_TTL:
         return cached['data']
-    api_key = os.getenv('YOUTUBE_API_KEY')
-    ch      = os.getenv('YOUTUBE_CHANNEL_ID')
+    api_key = church.yt_api_key
+    ch      = church.yt_channel_id
     if not api_key or not ch:
-        print('[YouTube] Chaves não configuradas no .env')
         return {}
-    p = dict(params)  # cópia para não mutar o original
+    p = dict(params)
     p.update({'key': api_key, 'channelId': ch})
     try:
-        resp = requests.get('https://www.googleapis.com/youtube/v3/search',
-                            params=p, timeout=8)
+        resp = requests.get('https://www.googleapis.com/youtube/v3/search', params=p, timeout=8)
         data = resp.json()
         if 'error' in data:
-            print(f'[YouTube] Erro da API: {data["error"].get("message")} (code {data["error"].get("code")})')
+            print(f'[YouTube] Erro da API: {data["error"].get("message")}')
             return {}
         _yt_cache[cache_key] = {'ts': time.time(), 'data': data}
         return data
@@ -89,107 +84,394 @@ def _yt_api(params: dict):
         print(f'[YouTube] Exceção: {e}')
         return {}
 
-def get_live_video_id():
-    # Permite override manual via .env (útil quando a Search API falha)
-    override = os.getenv('YOUTUBE_LIVE_OVERRIDE', '').strip()
+def get_live_video_id(church):
+    if not church: return None
+    override = (church.yt_live_override or '').strip()
     if override:
         return override
-    r = _yt_api({'part': 'snippet,id', 'eventType': 'live', 'type': 'video', 'maxResults': 1})
+    r = _yt_api(church, {'part': 'snippet,id', 'eventType': 'live', 'type': 'video', 'maxResults': 1})
     items = r.get('items', [])
     if items:
         return items[0]['id']['videoId']
     return None
 
-def get_upcoming_videos(max_results=4):
-    r = _yt_api({'part': 'snippet', 'eventType': 'upcoming', 'type': 'video', 'maxResults': max_results})
+def get_upcoming_videos(church, max_results=4):
+    r = _yt_api(church, {'part': 'snippet', 'eventType': 'upcoming', 'type': 'video', 'maxResults': max_results})
     return r.get('items', [])
 
-def get_recent_videos(max_results=8):
-    r = _yt_api({'part': 'snippet', 'order': 'date', 'type': 'video', 'maxResults': max_results})
+def get_recent_videos(church, max_results=8):
+    r = _yt_api(church, {'part': 'snippet', 'order': 'date', 'type': 'video', 'maxResults': max_results})
     return r.get('items', [])
 
-def admin_required():
-    if current_user.role not in ['admin', 'pastor']:
-        flash('Acesso negado.', 'danger')
-        return False
-    return True
+# ── Permissões e Contextos ───────────────────────────────────────────────────
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+def superadmin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_superadmin:
+            flash('Acesso negado (requer superadmin).', 'danger')
+            return redirect(url_for('home'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def pastor_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.role != 'pastor' or current_user.is_superadmin:
+            flash('Acesso negado (requer pastor).', 'danger')
+            return redirect(url_for('feed'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.before_request
+def check_approval_and_reset():
+    """Intercepta login se não estiver aprovado ou precisar de reset de senha."""
+    allowed_endpoints = {'login', 'register', 'logout', 'static', 'set_new_password', 'pending_approval'}
+    if current_user.is_authenticated:
+        if request.endpoint not in allowed_endpoints:
+            # Superadmin não precisa de aprovação nem igreja
+            if current_user.is_superadmin:
+                return
+            
+            if not current_user.is_approved:
+                return redirect(url_for('pending_approval'))
+            if getattr(current_user, 'must_reset_password', False):
+                return redirect(url_for('set_new_password'))
+
+@app.context_processor
+def inject_church():
+    if current_user.is_authenticated and not current_user.is_superadmin and current_user.church_id:
+        return {'church': current_user.church}
+    return {'church': None}
+
 # ── Auth ──────────────────────────────────────────────────────────────────────
 @app.route('/')
 def home():
-    return redirect(url_for('feed') if current_user.is_authenticated else url_for('login'))
+    if current_user.is_authenticated:
+        if current_user.is_superadmin:
+            return redirect(url_for('superadmin_dashboard'))
+        elif not current_user.is_approved:
+            return redirect(url_for('pending_approval'))
+        else:
+            return redirect(url_for('feed'))
+    return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('feed'))
+        return redirect(url_for('home'))
     if request.method == 'POST':
         user = User.query.filter_by(email=request.form.get('email')).first()
         if user and bcrypt.check_password_hash(user.password, request.form.get('password')):
             login_user(user, remember=True)
             next_page = request.args.get('next')
-            return redirect(next_page or url_for('feed'))
+            return redirect(next_page or url_for('home'))
         flash('Login inválido. Verifique e-mail e senha.', 'danger')
     return render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for('feed'))
+        return redirect(url_for('home'))
+    churches = Church.query.all()
     if request.method == 'POST':
+        church_id = request.form.get('church_id')
+        if not church_id:
+            flash('Por favor selecione uma igreja.', 'danger')
+            return redirect(url_for('register'))
         hashed = bcrypt.generate_password_hash(request.form.get('password')).decode('utf-8')
         user = User(name=request.form.get('name'), email=request.form.get('email'),
-                    password=hashed, role='membro')
+                    password=hashed, role='membro', church_id=int(church_id),
+                    is_approved=False)
         db.session.add(user)
         db.session.commit()
-        flash('Conta criada! Faça o login.', 'success')
+        flash('Conta criada! Faça o login para acompanhar a aprovação.', 'success')
         return redirect(url_for('login'))
-    return render_template('register.html')
+    return render_template('register.html', churches=churches)
+
+@app.route('/pending-approval')
+@login_required
+def pending_approval():
+    if current_user.is_superadmin or current_user.is_approved:
+        return redirect(url_for('home'))
+    return render_template('pending_approval.html')
+
+@app.route('/set-new-password', methods=['GET', 'POST'])
+@login_required
+def set_new_password():
+    if not current_user.must_reset_password:
+        return redirect(url_for('home'))
+    if request.method == 'POST':
+        pw  = request.form.get('password')
+        pw2 = request.form.get('password2')
+        if pw != pw2:
+            flash('As senhas não coincidem.', 'danger')
+        elif len(pw) < 6:
+            flash('A senha deve ter pelo menos 6 caracteres.', 'danger')
+        else:
+            current_user.password = bcrypt.generate_password_hash(pw).decode('utf-8')
+            current_user.must_reset_password = False
+            db.session.commit()
+            flash('Senha atualizada com sucesso!', 'success')
+            return redirect(url_for('home'))
+    return render_template('set_new_password.html')
 
 @app.route('/logout')
 def logout():
     logout_user()
-    return redirect(url_for('home'))
+    return redirect(url_for('login'))
+
+# ── Superadmin ────────────────────────────────────────────────────────────────
+@app.route('/superadmin')
+@superadmin_required
+def superadmin_dashboard():
+    churches = Church.query.all()
+    return render_template('superadmin_dashboard.html', churches=churches)
+
+@app.route('/superadmin/church/add', methods=['GET', 'POST'])
+@superadmin_required
+def add_church():
+    if request.method == 'POST':
+        c = Church(
+            name=request.form.get('name'),
+            slug=request.form.get('slug')
+        )
+        db.session.add(c)
+        db.session.commit()
+        
+        # Opcional: criar usuário pastor junto com a igreja
+        pastor_email = request.form.get('pastor_email')
+        pastor_name = request.form.get('pastor_name')
+        pastor_pass = request.form.get('pastor_password')
+        
+        if pastor_email:
+            u = User.query.filter_by(email=pastor_email).first()
+            if u:
+                # Se já existe, atualiza para ser o pastor desta igreja
+                if pastor_pass:
+                    u.password = bcrypt.generate_password_hash(pastor_pass).decode('utf-8')
+                if pastor_name:
+                    u.name = pastor_name
+                u.role = 'pastor'
+                u.church_id = c.id
+                u.is_approved = True
+            else:
+                # Se não existe, cria (exige senha inicial se for criar)
+                if not pastor_pass:
+                    flash('A senha é obrigatória para criar um novo pastor.', 'danger')
+                    db.session.delete(c) # rollback
+                    db.session.commit()
+                    return redirect(url_for('add_church'))
+                    
+                hashed = bcrypt.generate_password_hash(pastor_pass).decode('utf-8')
+                u = User(name=pastor_name or 'Pastor', email=pastor_email, password=hashed,
+                         role='pastor', church_id=c.id, is_approved=True)
+                db.session.add(u)
+                
+            db.session.commit()
+            c.pastor_id = u.id
+            db.session.commit()
+            
+        flash('Igreja cadastrada com sucesso!', 'success')
+        return redirect(url_for('superadmin_dashboard'))
+    return render_template('church_form.html', action='Adicionar', c=None)
+
+@app.route('/superadmin/church/<int:cid>/edit', methods=['GET', 'POST'])
+@superadmin_required
+def edit_church(cid):
+    c = Church.query.get_or_404(cid)
+    if request.method == 'POST':
+        c.name = request.form.get('name')
+        c.slug = request.form.get('slug')
+        db.session.commit()
+        flash('Igreja atualizada.', 'success')
+        return redirect(url_for('superadmin_dashboard'))
+    return render_template('church_form.html', action='Editar', c=c)
+
+@app.route('/superadmin/users')
+@superadmin_required
+def superadmin_users():
+    churches = Church.query.all()
+    unassigned = User.query.filter_by(church_id=None).all()
+    return render_template('superadmin_users.html', churches=churches, unassigned=unassigned)
+
+@app.route('/superadmin/users/add', methods=['GET', 'POST'])
+@superadmin_required
+def superadmin_add_user():
+    churches = Church.query.all()
+    if request.method == 'POST':
+        email = request.form.get('email')
+        if User.query.filter_by(email=email).first():
+            flash('E-mail já está em uso.', 'danger')
+            return redirect(url_for('superadmin_add_user'))
+            
+        hashed = bcrypt.generate_password_hash(request.form.get('password')).decode('utf-8')
+        
+        church_id = request.form.get('church_id')
+        church_id = int(church_id) if church_id else None
+        
+        u = User(
+            name=request.form.get('name'),
+            email=email,
+            password=hashed,
+            role=request.form.get('role', 'membro'),
+            church_id=church_id,
+            is_approved='is_approved' in request.form,
+            is_superadmin='is_superadmin' in request.form
+        )
+        db.session.add(u)
+        db.session.commit()
+        flash(f'Usuário {u.name} criado com sucesso!', 'success')
+        return redirect(url_for('superadmin_users'))
+    return render_template('superadmin_user_add.html', churches=churches)
+
+@app.route('/superadmin/users/<int:uid>/edit', methods=['GET', 'POST'])
+@superadmin_required
+def superadmin_edit_user(uid):
+    u = User.query.get_or_404(uid)
+    churches = Church.query.all()
+    if request.method == 'POST':
+        u.name = request.form.get('name')
+        u.email = request.form.get('email')
+        
+        # Alocar igreja
+        church_id = request.form.get('church_id')
+        u.church_id = int(church_id) if church_id else None
+        
+        # Permissões
+        u.role = request.form.get('role', 'membro')
+        u.is_approved = 'is_approved' in request.form
+        u.is_superadmin = 'is_superadmin' in request.form
+        
+        db.session.commit()
+        flash(f'Usuário {u.name} atualizado com sucesso.', 'success')
+        return redirect(url_for('superadmin_users'))
+    return render_template('superadmin_user_edit.html', u=u, churches=churches)
+
+# ── Pastor Settings & Users ───────────────────────────────────────────────────
+@app.route('/settings', methods=['GET', 'POST'])
+@pastor_required
+def church_settings():
+    c = current_user.church
+    if request.method == 'POST':
+        c.primary_color = request.form.get('primary_color')
+        c.secondary_color = request.form.get('secondary_color')
+        c.bg_color = request.form.get('bg_color')
+        c.card_bg_color = request.form.get('card_bg_color')
+        c.text_main_color = request.form.get('text_main_color')
+        c.text_muted_color = request.form.get('text_muted_color')
+        c.font_family = request.form.get('font_family')
+        
+        logo = request.files.get('logo_file')
+        if logo and logo.filename:
+            path, _, _ = save_upload(logo)
+            if path: c.logo_url = path
+
+        c.mp_access_token = request.form.get('mp_access_token')
+        c.yt_api_key = request.form.get('yt_api_key')
+        c.yt_channel_id = request.form.get('yt_channel_id')
+        c.yt_live_override = request.form.get('yt_live_override')
+        c.pastor_whatsapp = request.form.get('pastor_whatsapp')
+        c.church_instagram = request.form.get('church_instagram')
+        
+        c.has_reports = 'has_reports' in request.form
+        c.has_lives = 'has_lives' in request.form
+        c.has_families = 'has_families' in request.form
+        c.has_offerings = 'has_offerings' in request.form
+        c.has_finance = 'has_finance' in request.form
+        c.has_bills = 'has_bills' in request.form
+        
+        db.session.commit()
+        flash('Configurações da igreja atualizadas.', 'success')
+        return redirect(url_for('church_settings'))
+    return render_template('church_settings.html', c=c)
+
+@app.route('/members')
+@pastor_required
+def members():
+    users = User.query.filter_by(church_id=current_user.church_id, is_approved=True).all()
+    pending = User.query.filter_by(church_id=current_user.church_id, is_approved=False).all()
+    return render_template('members.html', users=users, pending_count=len(pending))
+
+@app.route('/approve-members')
+@pastor_required
+def approve_members():
+    pending = User.query.filter_by(church_id=current_user.church_id, is_approved=False).all()
+    return render_template('approve_members.html', pending=pending)
+
+@app.route('/approve-members/<int:uid>/<action>', methods=['POST'])
+@pastor_required
+def process_approval(uid, action):
+    u = User.query.filter_by(id=uid, church_id=current_user.church_id).first_or_404()
+    if action == 'approve':
+        u.is_approved = True
+        flash(f'Membro {u.name} aprovado.', 'success')
+    elif action == 'reject':
+        db.session.delete(u)
+        flash(f'Membro {u.name} rejeitado e removido.', 'info')
+    db.session.commit()
+    return redirect(url_for('approve_members'))
+
+@app.route('/members/<int:uid>/edit', methods=['GET', 'POST'])
+@pastor_required
+def edit_user(uid):
+    u = User.query.filter_by(id=uid, church_id=current_user.church_id).first_or_404()
+    if request.method == 'POST':
+        u.name  = request.form.get('name')
+        u.email = request.form.get('email')
+        u.role  = request.form.get('role')
+        db.session.commit()
+        flash(f'Usuário {u.name} atualizado!', 'success')
+        return redirect(url_for('members'))
+    return render_template('user_edit.html', u=u)
+
+@app.route('/members/<int:uid>/reset-password', methods=['POST'])
+@pastor_required
+def reset_user_password(uid):
+    u = User.query.filter_by(id=uid, church_id=current_user.church_id).first_or_404()
+    u.must_reset_password = True
+    db.session.commit()
+    flash(f'Senha de {u.name} marcada para redefinição.', 'success')
+    return redirect(url_for('members'))
+
+@app.route('/members/add', methods=['GET', 'POST'])
+@pastor_required
+def add_member():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        if User.query.filter_by(email=email).first():
+            flash('E-mail já está em uso.', 'danger')
+            return redirect(url_for('add_member'))
+
+        hashed = bcrypt.generate_password_hash(request.form.get('password')).decode('utf-8')
+        u = User(name=request.form.get('name'), email=email,
+                 password=hashed, role=request.form.get('role', 'membro'), church_id=current_user.church_id,
+                 is_approved=True)
+        db.session.add(u)
+        db.session.commit()
+        flash('Usuário adicionado com sucesso.', 'success')
+        return redirect(url_for('members'))
+    return render_template('add_pastor.html')
 
 # ── Feed ──────────────────────────────────────────────────────────────────────
 @app.route('/feed')
 @login_required
 def feed():
-    posts = Post.query.order_by(Post.created_at.desc()).all()
-    live_video_id = get_live_video_id()
+    if current_user.is_superadmin: return redirect(url_for('superadmin_dashboard'))
+    posts = Post.query.filter_by(church_id=current_user.church_id).order_by(Post.created_at.desc()).all()
+    live_video_id = get_live_video_id(current_user.church)
     return render_template('feed.html', posts=posts, live_video_id=live_video_id,
-                           pastor_whatsapp=os.getenv('PASTOR_WHATSAPP'),
-                           instagram=os.getenv('CHURCH_INSTAGRAM'))
-
-# ── Lives ─────────────────────────────────────────────────────────────────────
-@app.route('/lives')
-@login_required
-def lives():
-    live_id    = get_live_video_id()
-    upcoming   = get_upcoming_videos(4)
-    recent     = get_recent_videos(8)
-    channel_id = os.getenv('YOUTUBE_CHANNEL_ID', '')
-    return render_template('lives.html',
-                           live_id=live_id,
-                           upcoming=upcoming,
-                           recent=recent,
-                           channel_id=channel_id)
-
-# ── API: status da live (polling pelo frontend) ───────────────────────────────
-@app.route('/api/live-status')
-@login_required
-def live_status():
-    live_id = get_live_video_id()
-    return jsonify(live=bool(live_id), video_id=live_id)
+                           pastor_whatsapp=current_user.church.pastor_whatsapp,
+                           instagram=current_user.church.church_instagram)
 
 @app.route('/post', methods=['POST'])
 @login_required
 def create_post():
-    if current_user.role not in ['pastor', 'admin']:
+    if current_user.role != 'pastor':
         flash('Apenas o pastor pode criar postagens.', 'danger')
         return redirect(url_for('feed'))
 
@@ -201,11 +483,8 @@ def create_post():
     if uploaded and uploaded.filename:
         file_path, file_type, file_name = save_upload(uploaded)
     elif media_url:
-        # Detecta se é YouTube ou link externo
-        if 'youtube.com' in media_url or 'youtu.be' in media_url:
-            file_type = 'youtube'
-        else:
-            file_type = 'link'
+        if 'youtube.com' in media_url or 'youtu.be' in media_url: file_type = 'youtube'
+        else: file_type = 'link'
 
     if not content and not file_path and not media_url:
         flash('A postagem precisa ter texto ou alguma mídia.', 'danger')
@@ -213,7 +492,8 @@ def create_post():
 
     post = Post(content=content, media_url=media_url,
                 file_path=file_path, file_type=file_type,
-                file_name=file_name, author=current_user)
+                file_name=file_name, author=current_user,
+                church_id=current_user.church_id)
     db.session.add(post)
     db.session.commit()
     return redirect(url_for('feed'))
@@ -221,8 +501,8 @@ def create_post():
 @app.route('/post/<int:post_id>/edit', methods=['POST'])
 @login_required
 def edit_post(post_id):
-    post = Post.query.get_or_404(post_id)
-    if post.user_id != current_user.id and current_user.role != 'admin':
+    post = Post.query.filter_by(id=post_id, church_id=current_user.church_id).first_or_404()
+    if post.user_id != current_user.id and current_user.role != 'pastor':
         flash('Sem permissão.', 'danger')
         return redirect(url_for('feed'))
 
@@ -231,7 +511,6 @@ def edit_post(post_id):
     uploaded       = request.files.get('media_file')
 
     if uploaded and uploaded.filename:
-        # Apaga arquivo antigo se houver
         if post.file_path:
             old = os.path.join(os.path.dirname(__file__), 'static', post.file_path)
             if os.path.exists(old): os.remove(old)
@@ -250,11 +529,10 @@ def edit_post(post_id):
 @app.route('/post/<int:post_id>/delete', methods=['POST'])
 @login_required
 def delete_post(post_id):
-    post = Post.query.get_or_404(post_id)
-    if post.user_id != current_user.id and current_user.role != 'admin':
+    post = Post.query.filter_by(id=post_id, church_id=current_user.church_id).first_or_404()
+    if post.user_id != current_user.id and current_user.role != 'pastor':
         flash('Sem permissão.', 'danger')
         return redirect(url_for('feed'))
-    # remove likes e comentários primeiro
     Like.query.filter_by(post_id=post_id).delete()
     Comment.query.filter_by(post_id=post_id).delete()
     db.session.delete(post)
@@ -266,6 +544,8 @@ def delete_post(post_id):
 def add_comment(post_id):
     content = request.form.get('content', '').strip()
     if content:
+        # Verifica se o post é da mesma igreja
+        Post.query.filter_by(id=post_id, church_id=current_user.church_id).first_or_404()
         db.session.add(Comment(content=content, post_id=post_id, author=current_user))
         db.session.commit()
     return redirect(url_for('feed') + f'#post-{post_id}')
@@ -275,7 +555,7 @@ def add_comment(post_id):
 def delete_comment(cid):
     c = Comment.query.get_or_404(cid)
     post_id = c.post_id
-    if c.user_id != current_user.id and current_user.role not in ['admin', 'pastor']:
+    if c.user_id != current_user.id and current_user.role != 'pastor':
         flash('Sem permissão.', 'danger')
         return redirect(url_for('feed'))
     db.session.delete(c)
@@ -285,6 +565,7 @@ def delete_comment(cid):
 @app.route('/post/<int:post_id>/like', methods=['POST'])
 @login_required
 def like_post(post_id):
+    Post.query.filter_by(id=post_id, church_id=current_user.church_id).first_or_404()
     like = Like.query.filter_by(user_id=current_user.id, post_id=post_id).first()
     if like:
         db.session.delete(like)
@@ -294,22 +575,38 @@ def like_post(post_id):
         liked = True
     db.session.commit()
     total = Like.query.filter_by(post_id=post_id).count()
-    # Se AJAX retorna JSON, senão redireciona
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        from flask import jsonify
         return jsonify(liked=liked, total=total)
     return redirect(url_for('feed') + f'#post-{post_id}')
+
+# ── Lives ─────────────────────────────────────────────────────────────────────
+@app.route('/lives')
+@login_required
+def lives():
+    c = current_user.church
+    live_id  = get_live_video_id(c)
+    upcoming = get_upcoming_videos(c, 4)
+    recent   = get_recent_videos(c, 8)
+    return render_template('lives.html', live_id=live_id, upcoming=upcoming, recent=recent, channel_id=c.yt_channel_id)
+
+@app.route('/api/live-status')
+@login_required
+def live_status():
+    live_id = get_live_video_id(current_user.church)
+    return jsonify(live=bool(live_id), video_id=live_id)
 
 # ── Offerings / PIX ──────────────────────────────────────────────────────────
 @app.route('/offerings', methods=['GET', 'POST'])
 @login_required
 def offerings():
     qr_code = qr_code_base64 = None
-    if request.method == 'POST':
+    c = current_user.church
+    if request.method == 'POST' and c.mp_access_token:
         amount = float(request.form.get('amount'))
         tipo   = request.form.get('type')
         try:
-            resp = mp.payment().create({
+            sdk = mercadopago.SDK(c.mp_access_token)
+            resp = sdk.payment().create({
                 "transaction_amount": amount,
                 "description": f"{tipo.capitalize()} de {current_user.name}",
                 "payment_method_id": "pix",
@@ -322,87 +619,25 @@ def offerings():
                 qr_code_base64 = td["qr_code_base64"]
                 db.session.add(Transaction(type=tipo, amount=amount,
                     description=f"{tipo.capitalize()} via PIX",
-                    status='pending', user=current_user))
+                    status='pending', user=current_user, church_id=c.id))
                 db.session.commit()
         except Exception as e:
             flash(f'Erro ao gerar pagamento: {e}', 'danger')
     return render_template('offerings.html', qr_code=qr_code, qr_code_base64=qr_code_base64)
 
-# ── Admin ─────────────────────────────────────────────────────────────────────
+# ── Admin (Dashboard da Igreja) ───────────────────────────────────────────────
 @app.route('/admin')
-@login_required
+@pastor_required
 def admin_dashboard():
-    if not admin_required(): return redirect(url_for('feed'))
-    total_members = User.query.count()
-    total_bills   = Bill.query.filter_by(status='pendente').count()
+    total_members = User.query.filter_by(church_id=current_user.church_id, is_approved=True).count()
+    total_bills   = Bill.query.filter_by(church_id=current_user.church_id, status='pendente').count()
     return render_template('admin.html', total_members=total_members, total_bills=total_bills)
 
-@app.route('/members')
-@login_required
-def members():
-    if not admin_required(): return redirect(url_for('feed'))
-    return render_template('members.html', users=User.query.all())
-
-# ── Gerenciamento de Usuários (admin) ─────────────────────────────────────────
-@app.route('/admin/users/<int:uid>/edit', methods=['GET', 'POST'])
-@login_required
-def edit_user(uid):
-    if not admin_required(): return redirect(url_for('feed'))
-    u = User.query.get_or_404(uid)
-    if request.method == 'POST':
-        u.name  = request.form.get('name')
-        u.email = request.form.get('email')
-        u.role  = request.form.get('role')
-        db.session.commit()
-        flash(f'Usuário {u.name} atualizado!', 'success')
-        return redirect(url_for('members'))
-    return render_template('user_edit.html', u=u)
-
-@app.route('/admin/users/<int:uid>/reset-password', methods=['POST'])
-@login_required
-def reset_user_password(uid):
-    if not admin_required(): return redirect(url_for('feed'))
-    u = User.query.get_or_404(uid)
-    u.must_reset_password = True
-    db.session.commit()
-    flash(f'Senha de {u.name} marcada para redefinição. Na próxima vez que entrar, será solicitada uma nova senha.', 'success')
-    return redirect(url_for('members'))
-
-# ── Redefinição de senha obrigatória ──────────────────────────────────────────
-@app.before_request
-def check_password_reset():
-    """Intercepta qualquer request de usuário logado com reset pendente."""
-    allowed = {'set_new_password', 'logout', 'static'}
-    if current_user.is_authenticated and getattr(current_user, 'must_reset_password', False):
-        if request.endpoint not in allowed:
-            return redirect(url_for('set_new_password'))
-
-@app.route('/set-new-password', methods=['GET', 'POST'])
-@login_required
-def set_new_password():
-    if not current_user.must_reset_password:
-        return redirect(url_for('feed'))
-    if request.method == 'POST':
-        pw  = request.form.get('password')
-        pw2 = request.form.get('password2')
-        if pw != pw2:
-            flash('As senhas não coincidem.', 'danger')
-        elif len(pw) < 6:
-            flash('A senha deve ter pelo menos 6 caracteres.', 'danger')
-        else:
-            current_user.password = bcrypt.generate_password_hash(pw).decode('utf-8')
-            current_user.must_reset_password = False
-            db.session.commit()
-            flash('Senha atualizada com sucesso!', 'success')
-            return redirect(url_for('feed'))
-    return render_template('set_new_password.html')
-
-# ── Finance – listagem + CRUD transações ──────────────────────────────────────
+# ── Finance ───────────────────────────────────────────────────────────────────
 @app.route('/finance')
-@login_required
+@pastor_required
 def finance():
-    if not admin_required(): return redirect(url_for('feed'))
-    transactions = Transaction.query.order_by(Transaction.created_at.desc()).all()
+    transactions = Transaction.query.filter_by(church_id=current_user.church_id).order_by(Transaction.created_at.desc()).all()
     total_dizimos = sum(t.amount for t in transactions if t.type == 'dizimo'  and t.status == 'completed')
     total_ofertas = sum(t.amount for t in transactions if t.type == 'oferta'  and t.status == 'completed')
     total_entradas = sum(t.amount for t in transactions if t.type == 'entrada' and t.status == 'completed')
@@ -416,64 +651,62 @@ def finance():
                            saldo=saldo)
 
 @app.route('/finance/add', methods=['GET', 'POST'])
-@login_required
+@pastor_required
 def add_transaction():
-    if not admin_required(): return redirect(url_for('feed'))
     if request.method == 'POST':
         t = Transaction(
             type=request.form.get('type'),
             amount=float(request.form.get('amount')),
             description=request.form.get('description'),
             status=request.form.get('status', 'completed'),
+            church_id=current_user.church_id
         )
         db.session.add(t)
         db.session.commit()
-        flash('Transacao adicionada!', 'success')
+        flash('Transação adicionada!', 'success')
         return redirect(url_for('finance'))
     return render_template('transaction_form.html', action='Adicionar', t=None)
 
 @app.route('/finance/<int:tid>/edit', methods=['GET', 'POST'])
-@login_required
+@pastor_required
 def edit_transaction(tid):
-    if not admin_required(): return redirect(url_for('feed'))
-    t = Transaction.query.get_or_404(tid)
+    t = Transaction.query.filter_by(id=tid, church_id=current_user.church_id).first_or_404()
     if request.method == 'POST':
         t.type        = request.form.get('type')
         t.amount      = float(request.form.get('amount'))
         t.description = request.form.get('description')
         t.status      = request.form.get('status', 'completed')
         db.session.commit()
-        flash('Transacao atualizada!', 'success')
+        flash('Transação atualizada!', 'success')
         return redirect(url_for('finance'))
     return render_template('transaction_form.html', action='Editar', t=t)
 
 @app.route('/finance/<int:tid>/delete', methods=['POST'])
-@login_required
+@pastor_required
 def delete_transaction(tid):
-    if not admin_required(): return redirect(url_for('feed'))
-    db.session.delete(Transaction.query.get_or_404(tid))
+    t = Transaction.query.filter_by(id=tid, church_id=current_user.church_id).first_or_404()
+    db.session.delete(t)
     db.session.commit()
-    flash('Transacao removida.', 'info')
+    flash('Transação removida.', 'info')
     return redirect(url_for('finance'))
 
 # ── Contas a Pagar ────────────────────────────────────────────────────────────
 @app.route('/bills')
-@login_required
+@pastor_required
 def bills():
-    if not admin_required(): return redirect(url_for('feed'))
     today = date.today()
-    for b in Bill.query.filter_by(status='pendente').all():
-        if b.due_date < today:
+    my_bills = Bill.query.filter_by(church_id=current_user.church_id).all()
+    for b in my_bills:
+        if b.status == 'pendente' and b.due_date < today:
             b.status = 'atrasado'
     db.session.commit()
-    all_bills = Bill.query.order_by(Bill.due_date.asc()).all()
+    all_bills = Bill.query.filter_by(church_id=current_user.church_id).order_by(Bill.due_date.asc()).all()
     total_pendente = sum(b.amount for b in all_bills if b.status in ['pendente', 'atrasado'])
     return render_template('bills.html', bills=all_bills, total_pendente=total_pendente, today=today)
 
 @app.route('/bills/add', methods=['GET', 'POST'])
-@login_required
+@pastor_required
 def add_bill():
-    if not admin_required(): return redirect(url_for('feed'))
     if request.method == 'POST':
         due = datetime.strptime(request.form.get('due_date'), '%Y-%m-%d').date()
         b = Bill(
@@ -481,7 +714,8 @@ def add_bill():
             amount=float(request.form.get('amount')),
             due_date=due,
             category=request.form.get('category', 'Outros'),
-            status='pendente'
+            status='pendente',
+            church_id=current_user.church_id
         )
         db.session.add(b)
         db.session.commit()
@@ -490,10 +724,9 @@ def add_bill():
     return render_template('bill_form.html', action='Adicionar', b=None)
 
 @app.route('/bills/<int:bid>/edit', methods=['GET', 'POST'])
-@login_required
+@pastor_required
 def edit_bill(bid):
-    if not admin_required(): return redirect(url_for('feed'))
-    b = Bill.query.get_or_404(bid)
+    b = Bill.query.filter_by(id=bid, church_id=current_user.church_id).first_or_404()
     if request.method == 'POST':
         b.description = request.form.get('description')
         b.amount      = float(request.form.get('amount'))
@@ -508,32 +741,86 @@ def edit_bill(bid):
     return render_template('bill_form.html', action='Editar', b=b)
 
 @app.route('/bills/<int:bid>/delete', methods=['POST'])
-@login_required
+@pastor_required
 def delete_bill(bid):
-    if not admin_required(): return redirect(url_for('feed'))
-    db.session.delete(Bill.query.get_or_404(bid))
+    b = Bill.query.filter_by(id=bid, church_id=current_user.church_id).first_or_404()
+    db.session.delete(b)
     db.session.commit()
     flash('Conta removida.', 'info')
     return redirect(url_for('bills'))
 
 @app.route('/bills/<int:bid>/pay', methods=['POST'])
-@login_required
+@pastor_required
 def pay_bill(bid):
-    if not admin_required(): return redirect(url_for('feed'))
-    b = Bill.query.get_or_404(bid)
+    b = Bill.query.filter_by(id=bid, church_id=current_user.church_id).first_or_404()
     b.status  = 'pago'
     b.paid_at = datetime.utcnow()
     db.session.commit()
     flash(f'Conta "{b.description}" marcada como paga!', 'success')
     return redirect(url_for('bills'))
 
-# ── Relatorios ────────────────────────────────────────────────────────────────
+# ── PWA & Carteirinha ─────────────────────────────────────────────────────────
+
+@app.route('/manifest.json')
+def manifest():
+    c = current_user.church if current_user.is_authenticated and current_user.church else None
+    name = c.name if c else 'App Igreja'
+    bg = c.bg_color if c else '#0f111a'
+    primary = c.primary_color if c else '#d4af37'
+    
+    # Se a igreja tem logo, podemos usá-lo como ícone futuramente
+    return {
+        "name": name,
+        "short_name": name,
+        "start_url": "/",
+        "display": "standalone",
+        "background_color": bg,
+        "theme_color": primary,
+        "icons": [
+            {
+                "src": "/static/img/icon-192.png",
+                "sizes": "192x192",
+                "type": "image/png"
+            },
+            {
+                "src": "/static/img/icon-512.png",
+                "sizes": "512x512",
+                "type": "image/png"
+            }
+        ]
+    }
+
+@app.route('/sw.js')
+def service_worker():
+    sw = """
+self.addEventListener('install', (e) => {
+  e.waitUntil(
+    caches.open('igreja-store').then((cache) => cache.addAll([
+      '/',
+      '/static/css/style.css',
+      'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
+    ])),
+  );
+});
+
+self.addEventListener('fetch', (e) => {
+  e.respondWith(
+    fetch(e.request).catch(() => caches.match(e.request))
+  );
+});
+"""
+    response = make_response(sw)
+    response.headers['Content-Type'] = 'application/javascript'
+    return response
+
+
+
+# ── Rotas Gerais ────────────────────────────────────────────────────────────────
 @app.route('/reports')
-@login_required
+@pastor_required
 def reports():
-    if not admin_required(): return redirect(url_for('feed'))
-    transactions = Transaction.query.order_by(Transaction.created_at.asc()).all()
-    bills        = Bill.query.all()
+    transactions = Transaction.query.filter_by(church_id=current_user.church_id).order_by(Transaction.created_at.asc()).all()
+    bills = Bill.query.filter_by(church_id=current_user.church_id).all()
 
     total_dizimos    = sum(t.amount for t in transactions if t.type == 'dizimo'  and t.status == 'completed')
     total_ofertas    = sum(t.amount for t in transactions if t.type == 'oferta'  and t.status == 'completed')
@@ -576,19 +863,18 @@ def reports():
 
 # ── Famílias ─────────────────────────────────────────────────────────────────
 @app.route('/families')
-@login_required
+@pastor_required
 def families():
-    if not admin_required(): return redirect(url_for('feed'))
-    all_families = Family.query.order_by(Family.name.asc()).all()
+    all_families = Family.query.filter_by(church_id=current_user.church_id).order_by(Family.name.asc()).all()
     return render_template('families.html', families=all_families)
 
 @app.route('/families/add', methods=['GET', 'POST'])
-@login_required
+@pastor_required
 def add_family():
-    if not admin_required(): return redirect(url_for('feed'))
     if request.method == 'POST':
         f = Family(name=request.form.get('name'),
-                   description=request.form.get('description'))
+                   description=request.form.get('description'),
+                   church_id=current_user.church_id)
         db.session.add(f)
         db.session.commit()
         flash(f'Família "{f.name}" criada!', 'success')
@@ -596,19 +882,17 @@ def add_family():
     return render_template('family_form.html', action='Nova', f=None)
 
 @app.route('/families/<int:fid>')
-@login_required
+@pastor_required
 def family_detail(fid):
-    if not admin_required(): return redirect(url_for('feed'))
-    f = Family.query.get_or_404(fid)
+    f = Family.query.filter_by(id=fid, church_id=current_user.church_id).first_or_404()
     roots = [m for m in f.tree if m.parent_id is None]
-    all_users = User.query.order_by(User.name.asc()).all()
+    all_users = User.query.filter_by(church_id=current_user.church_id).order_by(User.name.asc()).all()
     return render_template('family_detail.html', f=f, roots=roots, all_users=all_users)
 
 @app.route('/families/<int:fid>/edit', methods=['GET', 'POST'])
-@login_required
+@pastor_required
 def edit_family(fid):
-    if not admin_required(): return redirect(url_for('feed'))
-    f = Family.query.get_or_404(fid)
+    f = Family.query.filter_by(id=fid, church_id=current_user.church_id).first_or_404()
     if request.method == 'POST':
         f.name        = request.form.get('name')
         f.description = request.form.get('description')
@@ -618,11 +902,9 @@ def edit_family(fid):
     return render_template('family_form.html', action='Editar', f=f)
 
 @app.route('/families/<int:fid>/delete', methods=['POST'])
-@login_required
+@pastor_required
 def delete_family(fid):
-    if not admin_required(): return redirect(url_for('feed'))
-    f = Family.query.get_or_404(fid)
-    # Remove membros da árvore antes
+    f = Family.query.filter_by(id=fid, church_id=current_user.church_id).first_or_404()
     FamilyMember.query.filter_by(family_id=fid).delete()
     db.session.delete(f)
     db.session.commit()
@@ -630,10 +912,9 @@ def delete_family(fid):
     return redirect(url_for('families'))
 
 @app.route('/families/<int:fid>/members/add', methods=['GET', 'POST'])
-@login_required
+@pastor_required
 def add_family_member(fid):
-    if not admin_required(): return redirect(url_for('feed'))
-    f = Family.query.get_or_404(fid)
+    f = Family.query.filter_by(id=fid, church_id=current_user.church_id).first_or_404()
     if request.method == 'POST':
         bd_str = request.form.get('birth_date')
         bd = datetime.strptime(bd_str, '%Y-%m-%d').date() if bd_str else None
@@ -654,15 +935,14 @@ def add_family_member(fid):
         flash(f'{m.name} adicionado(a) à família!', 'success')
         return redirect(url_for('family_detail', fid=fid))
     existing = FamilyMember.query.filter_by(family_id=fid).all()
-    all_users = User.query.order_by(User.name.asc()).all()
+    all_users = User.query.filter_by(church_id=current_user.church_id).order_by(User.name.asc()).all()
     return render_template('family_member_form.html', action='Adicionar',
                            f=f, m=None, existing=existing, all_users=all_users)
 
 @app.route('/families/<int:fid>/members/<int:mid>/edit', methods=['GET', 'POST'])
-@login_required
+@pastor_required
 def edit_family_member(fid, mid):
-    if not admin_required(): return redirect(url_for('feed'))
-    f = Family.query.get_or_404(fid)
+    f = Family.query.filter_by(id=fid, church_id=current_user.church_id).first_or_404()
     m = FamilyMember.query.get_or_404(mid)
     if request.method == 'POST':
         bd_str = request.form.get('birth_date')
@@ -679,16 +959,15 @@ def edit_family_member(fid, mid):
         flash(f'{m.name} atualizado(a)!', 'success')
         return redirect(url_for('family_detail', fid=fid))
     existing = FamilyMember.query.filter_by(family_id=fid).filter(FamilyMember.id != mid).all()
-    all_users = User.query.order_by(User.name.asc()).all()
+    all_users = User.query.filter_by(church_id=current_user.church_id).order_by(User.name.asc()).all()
     return render_template('family_member_form.html', action='Editar',
                            f=f, m=m, existing=existing, all_users=all_users)
 
 @app.route('/families/<int:fid>/members/<int:mid>/delete', methods=['POST'])
-@login_required
+@pastor_required
 def delete_family_member(fid, mid):
-    if not admin_required(): return redirect(url_for('feed'))
+    Family.query.filter_by(id=fid, church_id=current_user.church_id).first_or_404()
     m = FamilyMember.query.get_or_404(mid)
-    # Desvincula filhos antes de apagar
     for child in m.children:
         child.parent_id = None
     db.session.delete(m)

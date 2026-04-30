@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card glass">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 class="card-title" style="margin:0;"><i class="fa-solid fa-crown"></i> Painel Superadmin</h2>
+        <a href="{{ url_for('add_church') }}" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Nova Igreja</a>
+    </div>
+</div>
+
+<div class="card glass">
+    <h3 style="margin-bottom:1.5rem;color:var(--text-main);">Igrejas Cadastradas</h3>
+    {% if churches %}
+    <div class="table-responsive">
+        <table style="width:100%; border-collapse:collapse; text-align:left;">
+            <thead>
+                <tr style="border-bottom:1px solid var(--glass-border); color:var(--text-muted);">
+                    <th style="padding:1rem;">ID</th>
+                    <th style="padding:1rem;">Nome</th>
+                    <th style="padding:1rem;">Slug</th>
+                    <th style="padding:1rem;">Data Cadastro</th>
+                    <th style="padding:1rem; text-align:right;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in churches %}
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:1rem;">{{ c.id }}</td>
+                    <td style="padding:1rem; font-weight:600;">{{ c.name }}</td>
+                    <td style="padding:1rem;">{{ c.slug }}</td>
+                    <td style="padding:1rem;">{{ c.created_at.strftime('%d/%m/%Y') }}</td>
+                    <td style="padding:1rem; text-align:right;">
+                        <a href="{{ url_for('edit_church', cid=c.id) }}" class="btn btn-primary" style="padding:0.4rem 0.8rem; font-size:0.9rem;">
+                            <i class="fa-solid fa-pen"></i> Editar
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color:var(--text-muted); text-align:center;">Nenhuma igreja cadastrada ainda.</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aguardando Aprovação</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: #0f111a;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1rem;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 3rem 2rem;
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        i {
+            font-size: 4rem;
+            color: #d4af37;
+            margin-bottom: 1.5rem;
+        }
+        h2 {
+            margin: 0 0 1rem;
+            font-weight: 600;
+        }
+        p {
+            color: rgba(255,255,255,0.6);
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+        .btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 0.8rem 2rem;
+            border-radius: 10px;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <i class="fa-solid fa-clock"></i>
+        <h2>Aguardando Aprovação</h2>
+        <p>Sua conta foi criada com sucesso e está vinculada à sua igreja. Para sua segurança e da congregação, aguarde até que o pastor aprove seu acesso.</p>
+        <a href="{{ url_for('logout') }}" class="btn">Sair</a>
+    </div>
+</body>
+</html>

@@ -16,7 +16,7 @@
     </div>
 </div>
 
-{% if live_video_id %}
+{% if live_video_id and current_user.church.has_lives %}
 <div class="card glass" style="margin-bottom:2rem;overflow:hidden;border:2px solid #ef5350;">
     <div style="background:#ef5350;padding:.4rem 1rem;display:flex;align-items:center;gap:.5rem;">
         <span style="width:9px;height:9px;border-radius:50%;background:white;animation:pulse 1.2s infinite;"></span>
