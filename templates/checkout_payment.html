@@ -83,7 +83,7 @@
         <p>O pagamento é processado com total segurança pelo Mercado Pago (via PIX, Cartão ou Boleto).</p>
         <a href="{{ init_point }}" class="btn"><i class="fa-solid fa-handshake"></i> Ir para o Pagamento Seguro</a>
         {% else %}
-            {% if not get_flashed_messages() %}
+            {% if not messages %}
             <div style="padding:1rem; background:rgba(239, 68, 68, 0.1); border:1px solid #ef4444; color:#fca5a5; border-radius:8px;">
                 <i class="fa-solid fa-triangle-exclamation"></i> O Gateway de Pagamento (Mercado Pago) não foi configurado ou retornou um erro interno. Verifique os logs do servidor.
             </div>
