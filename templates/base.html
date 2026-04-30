@@ -4,13 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>My Church - Gestão Inteligente</title>
-    {% if church and church.logo_url %}
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename=church.logo_url) }}">
-    {% else %}
-    {% set initial = church.name[0]|upper if church else 'M' %}
-    {% set fav_color = church.primary_color if church else '#d4af37' %}
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='{{ fav_color|replace('#', '%23') }}'/><text x='50' y='70' font-family='Arial, sans-serif' font-size='65' fill='white' text-anchor='middle' font-weight='bold'>{{ initial }}</text></svg>">
-    {% endif %}
+    <link id="dynamic-favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%23d4af37'/><text x='50' y='70' font-family='Arial' font-size='60' fill='white' text-anchor='middle'>M</text></svg>">
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const churchName = "{{ church.name if church else 'My Church' }}";
+            const logoUrl = "{% if church and church.logo_url %}{{ url_for('static', filename=church.logo_url) }}{% endif %}";
+            const primaryColor = "{{ church.primary_color if church else '#d4af37' }}";
+            const favicon = document.getElementById('dynamic-favicon');
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+
+            if (logoUrl) {
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                img.src = logoUrl;
+                img.onload = () => {
+                    ctx.beginPath();
+                    ctx.arc(32, 32, 32, 0, Math.PI * 2);
+                    ctx.closePath();
+                    ctx.clip();
+                    ctx.drawImage(img, 0, 0, 64, 64);
+                    favicon.href = canvas.toDataURL('image/png');
+                };
+            } else {
+                ctx.fillStyle = primaryColor;
+                ctx.beginPath();
+                ctx.arc(32, 32, 32, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 38px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(churchName.charAt(0).toUpperCase(), 32, 35);
+                favicon.href = canvas.toDataURL('image/png');
+            }
+        });
+    </script>
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="{{ church.primary_color if church else '#d4af37' }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
