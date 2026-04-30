@@ -16,7 +16,7 @@
         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
             <h3 style="margin:0; color:var(--primary);">{{ p.name }}</h3>
             <div style="display:flex; gap:0.5rem;">
-                <button onclick="editPlan({{ p.id }}, '{{ p.name }}', {{ p.price }}, '{{ p.promotional_price or '' }}', '{{ p.features|replace('\n', '\\n') }}', {{ p.is_active|lower }})" style="background:none; border:none; color:var(--text-muted); cursor:pointer;">
+                <button onclick="editPlan({{ p.id }}, '{{ p.name }}', {{ p.price }}, '{{ p.promotional_price or '' }}', '{{ p.features|replace('\n', '\\n') }}', {{ p.is_active|lower }}, {{ p.duration_months }})" style="background:none; border:none; color:var(--text-muted); cursor:pointer;">
                     <i class="fa-solid fa-pen"></i>
                 </button>
                 <form action="{{ url_for('delete_plan', pid=p.id) }}" method="POST" onsubmit="return confirm('Excluir este plano?');">
@@ -37,7 +37,8 @@
         </div>
 
         <div style="margin-top:1rem; font-size:0.9rem; color:var(--text-muted);">
-            <strong>Status:</strong> {% if p.is_active %}<span style="color:#4ade80;">Ativo</span>{% else %}<span style="color:#f87171;">Inativo</span>{% endif %}
+            <strong>Status:</strong> {% if p.is_active %}<span style="color:#4ade80;">Ativo</span>{% else %}<span style="color:#f87171;">Inativo</span>{% endif %}<br>
+            <strong>Duração:</strong> {% if p.duration_months == 0 %}Ilimitado{% elif p.duration_months == 1 %}Mensal{% else %}{{ p.duration_months }} meses{% endif %}
         </div>
 
         {% if p.features %}
@@ -74,6 +75,16 @@
                 </div>
             </div>
             <div class="form-group">
+                <label>Duração do Plano</label>
+                <select name="duration_months" class="form-control">
+                    <option value="1">Mensal (30 dias)</option>
+                    <option value="3">Trimestral (90 dias)</option>
+                    <option value="6">Semestral (180 dias)</option>
+                    <option value="12">Anual (365 dias)</option>
+                    <option value="0">Ilimitado (Acesso Vitalício)</option>
+                </select>
+            </div>
+            <div class="form-group">
                 <label>Recursos (Um por linha)</label>
                 <textarea name="features" class="form-control" rows="4" placeholder="Membros Ilimitados&#10;Suporte VIP"></textarea>
             </div>
@@ -105,6 +116,16 @@
                 </div>
             </div>
             <div class="form-group">
+                <label>Duração do Plano</label>
+                <select id="edit_duration" name="duration_months" class="form-control">
+                    <option value="1">Mensal</option>
+                    <option value="3">Trimestral</option>
+                    <option value="6">Semestral</option>
+                    <option value="12">Anual</option>
+                    <option value="0">Ilimitado</option>
+                </select>
+            </div>
+            <div class="form-group">
                 <label>Recursos</label>
                 <textarea id="edit_features" name="features" class="form-control" rows="4"></textarea>
             </div>
@@ -121,13 +142,14 @@
 </div>
 
 <script>
-function editPlan(id, name, price, promo, features, isActive) {
+function editPlan(id, name, price, promo, features, isActive, duration) {
     document.getElementById('editPlanForm').action = "/superadmin/plans/" + id + "/edit";
     document.getElementById('edit_name').value = name;
     document.getElementById('edit_price').value = price;
     document.getElementById('edit_promo').value = promo;
     document.getElementById('edit_features').value = features;
     document.getElementById('edit_active').checked = isActive;
+    document.getElementById('edit_duration').value = duration;
     document.getElementById('editPlanModal').style.display = 'flex';
 }
 </script>

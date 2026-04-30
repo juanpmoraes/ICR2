@@ -190,6 +190,7 @@ class Plan(db.Model):
     price             = db.Column(db.Float, nullable=False)
     promotional_price = db.Column(db.Float, nullable=True)
     features          = db.Column(db.Text, nullable=True) # separado por quebra de linha
+    duration_months   = db.Column(db.Integer, default=1)  # 1 para mensal, 0 para ilimitado
     is_active         = db.Column(db.Boolean, default=True)
     created_at        = db.Column(db.DateTime, default=datetime.utcnow)
     

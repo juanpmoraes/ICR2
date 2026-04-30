@@ -310,9 +310,14 @@ def webhook_mp():
                         church = Church.query.get(int(church_id_str))
                         if church:
                             church.subscription_status = 'active'
-                            # Adiciona 30 dias de acesso
+                            # Calcula expiração baseada no plano
                             import datetime as dt
-                            church.subscription_expires_at = dt.datetime.utcnow() + dt.timedelta(days=30)
+                            if church.plan and church.plan.duration_months > 0:
+                                church.subscription_expires_at = dt.datetime.utcnow() + dt.timedelta(days=30 * church.plan.duration_months)
+                            else:
+                                # Se plano for 0 ou nulo, é ilimitado (colocamos 100 anos)
+                                church.subscription_expires_at = dt.datetime.utcnow() + dt.timedelta(days=36500)
+                                
                             church.mp_payment_id = str(payment_id)
                             db.session.commit()
     except Exception as e:
@@ -518,8 +523,8 @@ def grant_free_access(cid):
     c = Church.query.get_or_404(cid)
     c.subscription_status = 'active'
     import datetime as dt
-    # Libera por 10 anos
-    c.subscription_expires_at = dt.datetime.utcnow() + dt.timedelta(days=3650)
+    # Libera por 100 anos (Ilimitado)
+    c.subscription_expires_at = dt.datetime.utcnow() + dt.timedelta(days=36500)
     db.session.commit()
     flash(f'Acesso gratuito concedido à igreja {c.name}!', 'success')
     return redirect(url_for('superadmin_dashboard'))
@@ -538,7 +543,8 @@ def add_plan():
         name=request.form.get('name'),
         price=float(request.form.get('price')),
         promotional_price=float(request.form.get('promotional_price')) if request.form.get('promotional_price') else None,
-        features=request.form.get('features')
+        features=request.form.get('features'),
+        duration_months=int(request.form.get('duration_months', 1))
     )
     db.session.add(p)
     db.session.commit()
@@ -553,6 +559,7 @@ def edit_plan(pid):
     p.price = float(request.form.get('price'))
     p.promotional_price = float(request.form.get('promotional_price')) if request.form.get('promotional_price') else None
     p.features = request.form.get('features')
+    p.duration_months = int(request.form.get('duration_months', 1))
     p.is_active = 'is_active' in request.form
     db.session.commit()
     flash('Plano atualizado!', 'success')
