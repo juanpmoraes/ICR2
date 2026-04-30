@@ -1,25 +1,30 @@
-# ✝️ Igreja Cristã Resplandecer — Sistema de Gestão
+# ✝️ ChurchSaaS — Sistema de Gestão Multi-Igrejas
 
-Sistema web completo de gestão para igrejas, desenvolvido com **Flask** e **Python**. Oferece feed de notícias do pastor, transmissões ao vivo via YouTube, oferta por PIX, controle financeiro, árvore genealógica de famílias e painel administrativo.
+Sistema web completo **SaaS (Software as a Service)** para gestão de igrejas, desenvolvido com **Flask** e **Python**. Projetado para suportar **múltiplas igrejas (Multi-Tenant)** na mesma plataforma, oferecendo isolamento total de dados, personalização visual por congregação e controle hierárquico avançado.
 
 ---
 
-## 📋 Funcionalidades
+## 📋 Funcionalidades Principais
 
-### Para Membros
-- 🔐 **Autenticação** — Cadastro e login seguro com senhas criptografadas (bcrypt)
-- 📰 **Feed Social** — Acompanhe postagens do pastor com texto, imagens, vídeos, áudios e links
-- ❤️ **Interação** — Curta e comente as postagens
-- 📺 **Lives** — Assista transmissões ao vivo, vídeos agendados e recentes do canal da igreja no YouTube
-- 💸 **Oferta/Dízimo** — Realize doações via PIX integrado com Mercado Pago
+### 👑 Para o Superadmin (Dono da Plataforma)
+- **Gestão de Inquilinos (Churches)** — Cadastro e gerenciamento de múltiplas igrejas independentes.
+- **Painel Global de Usuários** — Controle total sobre todos os usuários da plataforma, podendo transferir membros entre igrejas e delegar papéis de Pastor ou Superadmin.
+- **Métricas Globais** — Acesso centralizado às informações gerais da plataforma.
 
-### Para Administradores / Pastor
-- 📝 **Gerenciamento de Posts** — Crie, edite e exclua publicações com suporte a múltiplas mídias (upload local ou URL)
-- 👥 **Gestão de Membros** — Visualize, edite funções e redefina senhas de usuários
-- 💰 **Financeiro** — Controle completo de entradas (dízimos, ofertas) e saídas (gastos, dívidas)
-- 📑 **Contas a Pagar** — Cadastre e gerencie contas com datas de vencimento e status (pendente/pago/atrasado)
-- 📊 **Relatórios** — Gráficos mensais de receitas × despesas, pizza de categorias e resumo financeiro
-- 🌳 **Árvore Genealógica** — Cadastre e visualize famílias e sua estrutura hierárquica completa
+### 👔 Para o Pastor (Gerente da Igreja)
+- **Aprovação de Membros** — Novos membros que se cadastram precisam ser aprovados pelo Pastor para ter acesso aos módulos restritos.
+- **Customização Completa de Design** — Personalize as cores (primária, fundo, cards, texto), a tipografia (fontes do Google Fonts) e o logotipo da sua igreja diretamente pelo painel.
+- **Controle de Módulos** — O Pastor pode ativar ou desativar funcionalidades (Finanças, Relatórios, Famílias, Lives, etc.) de acordo com a necessidade da sua congregação.
+- **Redes Sociais e API** — Configuração autônoma do WhatsApp, Instagram, MercadoPago Access Token e chaves do YouTube.
+- **Gestão da Igreja** — Acesso ao painel financeiro (dízimos, entradas, gastos, contas a pagar), relatórios gráficos e controle da árvore genealógica de famílias.
+- **Feed Social da Igreja** — Compartilhamento de mensagens, mídias (foto, vídeo, áudio, documentos) exclusivas para os membros da congregação.
+
+### 👥 Para Membros
+- **Carteirinha de Membro Virtual** — Perfil moderno estilo *Glassmorphism* com a logo da igreja, foto do perfil, cargo e código de barras.
+- **Aplicativo PWA** — Possibilidade de instalar a plataforma como um Aplicativo no celular (Progressive Web App) gerado automaticamente com o nome e as cores da Igreja.
+- **Doações (PIX)** — Ofertas e dízimos diretamente pelo aplicativo, com geração automática de QR Code via integração com o Mercado Pago.
+- **Interação** — Curtidas e comentários restritos apenas ao círculo social da própria igreja.
+- **Culto Online** — Visualização das Lives em andamento e agendamentos configurados pelo Pastor via YouTube API.
 
 ---
 
@@ -33,8 +38,8 @@ Sistema web completo de gestão para igrejas, desenvolvido com **Flask** e **Pyt
 | Banco de dados | SQLite (dev) / MySQL (prod) |
 | Pagamentos | Mercado Pago SDK (PIX) |
 | Streaming | YouTube Data API v3 |
-| HTTP Client | Requests |
-| Config | python-dotenv |
+| PWA | Service Worker nativo + Manifest.json Dinâmico |
+| Interface | HTML5, CSS3, FontAwesome, Google Fonts, Glassmorphism CSS |
 
 ---
 
@@ -44,7 +49,7 @@ Sistema web completo de gestão para igrejas, desenvolvido com **Flask** e **Pyt
 
 ```bash
 git clone <url-do-repositorio>
-cd ICR
+cd ICR2
 ```
 
 ### 2. Crie e ative o ambiente virtual
@@ -65,9 +70,9 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 4. Configure as variáveis de ambiente
+### 4. Configure as variáveis de ambiente base
 
-Crie um arquivo `.env` na raiz do projeto com base no exemplo abaixo:
+Crie um arquivo `.env` na raiz do projeto (apenas as variáveis base globais):
 
 ```env
 # Segurança
@@ -75,29 +80,22 @@ SECRET_KEY=sua-chave-secreta-aqui
 
 # Banco de dados (deixe em branco para usar SQLite local)
 MYSQL_URI=mysql+pymysql://usuario:senha@host:3306/nome_banco
-
-# Mercado Pago (PIX)
-MERCADOPAGO_ACCESS_TOKEN=seu-token-aqui
-
-# YouTube Data API
-YOUTUBE_API_KEY=sua-chave-api-youtube
-YOUTUBE_CHANNEL_ID=UCxxxxxxxxxxxxxxxxxx
-
-# Override manual para live (opcional — útil quando a API falha)
-YOUTUBE_LIVE_OVERRIDE=
-
-# Informações de contato da igreja (exibidas no feed)
-PASTOR_WHATSAPP=5511999999999
-CHURCH_INSTAGRAM=@igrejaresplandecer
 ```
 
-### 5. Crie o banco de dados
+*(Nota: Configurações de Mercado Pago, YouTube e WhatsApp agora são salvas **no banco de dados**, configuradas diretamente pelo Pastor no Painel de Configurações da Igreja, garantindo a arquitetura Multi-Tenant).*
+
+### 5. Crie e migre o banco de dados
+
+Para a arquitetura Multi-Tenant, certifique-se de executar o script de migração completo:
 
 ```bash
-python -c "from app import app, db; app.app_context().__enter__(); db.create_all()"
+python migrate_multichurch.py
 ```
+*(O script cuida da inicialização e atualização do banco caso existam instâncias antigas)*
 
-### 6. Crie o primeiro administrador
+### 6. Crie o primeiro Superadmin
+
+O acesso global é feito pelo Superadmin. Para criá-lo:
 
 ```bash
 python create_admin.py
@@ -109,112 +107,36 @@ python create_admin.py
 python app.py
 ```
 
-Acesse **http://localhost:5000** no navegador.
+Acesse **http://localhost:80** ou a porta configurada no seu ambiente.
 
 ---
 
-## 📁 Estrutura do Projeto
+## 🗄️ Modelos de Dados (SaaS)
 
 ```
-ICR/
-├── app.py                    # Aplicação principal + todas as rotas
-├── models.py                 # Modelos do banco de dados (SQLAlchemy)
-├── requirements.txt          # Dependências Python
-├── .env                      # Variáveis de ambiente (não versionar!)
-├── .gitignore
-│
-├── static/
-│   └── uploads/
-│       └── posts/            # Arquivos de mídia enviados pelo pastor
-│
-├── templates/                # Templates HTML (Jinja2)
-│   ├── login.html
-│   ├── register.html
-│   ├── feed.html
-│   ├── lives.html
-│   ├── offerings.html
-│   ├── admin.html
-│   ├── members.html
-│   ├── finance.html
-│   ├── bills.html
-│   ├── reports.html
-│   ├── families.html
-│   └── ...
-│
-├── create_admin.py           # Script para criar usuário administrador
-├── check_db.py               # Script utilitário para verificar o banco
-├── debug_youtube.py          # Script para testar a integração com YouTube
-│
-└── migrate_*.py              # Scripts de migração do banco de dados
+Church         → Inquilino (Tenant). Guarda configs visuais, de API e toggles de módulos.
+User           → Usuário (Superadmin global, Pastor de Igreja ou Membro de Igreja).
+Post           → Publicações (Vinculadas a uma Igreja).
+Comment        → Comentários (Isolados por Igreja).
+Like           → Curtidas.
+Transaction    → Transações financeiras (Isoladas por Igreja).
+Bill           → Contas a pagar (Isoladas por Igreja).
+Family         → Grupos familiares (Isolados por Igreja).
+FamilyMember   → Membros da família.
 ```
 
 ---
 
-## 🗄️ Modelos de Dados
-
-```
-User           → Membro da plataforma (admin | pastor | membro)
-Post           → Publicação do pastor (texto, imagem, vídeo, áudio, link, YouTube)
-Comment        → Comentário em um post
-Like           → Curtida em um post
-Transaction    → Transação financeira (dízimo, oferta, entrada, gasto, dívida)
-Bill           → Conta a pagar da igreja
-Family         → Grupo familiar cadastrado
-FamilyMember   → Nó da árvore genealógica (auto-referencial)
-```
-
----
-
-## 🔒 Controle de Acesso
+## 🔒 Hierarquia de Acesso (RBAC)
 
 | Papel | Acesso |
 |---|---|
-| `membro` | Feed, Lives, Perfil, Ofertas |
-| `pastor` | Tudo de membro + criar/editar/excluir posts |
-| `admin` | Tudo de pastor + painel administrativo, financeiro, famílias, membros |
-
-> Administradores podem forçar a redefinição de senha de qualquer membro. Na próxima tentativa de login, o usuário será redirecionado para criar uma nova senha.
-
----
-
-## 📺 Integração YouTube
-
-O sistema consulta a **YouTube Data API v3** para detectar automaticamente:
-
-- 🔴 Live em andamento (exibida no feed e na página de Lives)
-- 📅 Vídeos agendados (próximas transmissões)
-- 🎬 Vídeos recentes do canal
-
-Um cache em memória de **60 segundos** evita excesso de chamadas à API. É possível definir `YOUTUBE_LIVE_OVERRIDE` no `.env` para forçar manualmente um vídeo de live, caso a API retorne erro de cota.
-
----
-
-## 💳 Integração Mercado Pago (PIX)
-
-Na tela de ofertas, o membro seleciona o tipo (dízimo ou oferta) e o valor. O sistema gera um **QR Code PIX** via API do Mercado Pago. A transação é registrada com status `pending` até a confirmação.
-
----
-
-## 🗃️ Migrações
-
-Scripts disponíveis para evoluir o banco de dados sem perder dados:
-
-| Script | Descrição |
-|---|---|
-| `migrate_add_reset_flag.py` | Adiciona coluna `must_reset_password` na tabela `user` |
-| `migrate_families.py` | Cria tabelas `family` e `family_member` |
-| `migrate_post_media.py` | Adiciona colunas de mídia na tabela `post` |
-
-Execute conforme necessário:
-
-```bash
-python migrate_families.py
-```
+| **`Superadmin`** | Acesso global a todas as Igrejas e Usuários. Pode transferir usuários entre bancos de dados de igrejas. |
+| **`Pastor`** | Acesso **apenas à sua própria Igreja**. Aprova novos membros, configura o PWA (cores/fontes), administra finanças, mídias sociais e cadastra outros pastores. |
+| **`Membro`** | Acesso **apenas à sua própria Igreja**. Vê o feed, envia PIX, assiste lives e possui Carteirinha Virtual (após ser aprovado pelo Pastor). |
 
 ---
 
 ## 📝 Licença
 
-Projeto de uso interno da **Igreja Cristã Resplandecer**. Todos os direitos reservados.
-"# ICR" 
-"# ICR2" 
+Desenvolvido para uso comercial / SaaS como modelo de gestão **Multi-Igrejas**.
