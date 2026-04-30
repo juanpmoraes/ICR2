@@ -8,6 +8,7 @@
     <meta name="theme-color" content="{{ church.primary_color if church else '#d4af37' }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<<<<<<< HEAD
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260430a">
     {% if church %}
     <style>
@@ -23,6 +24,9 @@
         }
     </style>
     {% endif %}
+=======
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260429d">
+>>>>>>> f4575dcbda1c86226e65774c0aa145af20701a98
 </head>
 <body>
     {% if current_user.is_authenticated %}
@@ -103,7 +107,10 @@
                 <li><a href="{{ url_for('church_settings') }}" onclick="closeSidebar()"><i class="fa-solid fa-sliders"></i> Configurações</a></li>
             </ul>
             {% endif %}
+<<<<<<< HEAD
             {% endif %}
+=======
+>>>>>>> f4575dcbda1c86226e65774c0aa145af20701a98
 
             <!-- Sair dentro do scroll — sempre visível no mobile -->
             <div style="margin-top:1.5rem;border-top:1px solid var(--glass-border);padding-top:1rem;">
@@ -130,7 +137,11 @@
     <!-- Login/Register Area centered -->
     <div style="display: flex; width: 100%; min-height: 100vh; align-items: center; justify-content: center; flex-direction: column;">
         <div class="logo-area" style="margin-bottom: 2rem; text-align: center; padding: 0 1rem;">
+<<<<<<< HEAD
             <h1 style="color: var(--primary); font-size: 2.5rem; text-align: center;"><i class="fa-solid fa-church"></i> Plataforma de Igrejas</h1>
+=======
+            <h1 style="color: var(--primary); font-size: 2.5rem; text-align: center;"><i class="fa-solid fa-church"></i> Igreja Cristã Resplandecer</h1>
+>>>>>>> f4575dcbda1c86226e65774c0aa145af20701a98
         </div>
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
