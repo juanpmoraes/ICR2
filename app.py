@@ -295,36 +295,53 @@ def webhook_mp():
     try:
         mp_token = os.getenv('SAAS_MP_ACCESS_TOKEN')
         if not mp_token:
+            print("[Webhook MP] Erro: SAAS_MP_ACCESS_TOKEN não configurado.")
             return jsonify({"status": "ignored"}), 200
             
-        topic = request.args.get('topic') or request.args.get('type')
-        payment_id = request.args.get('id') or request.args.get('data.id')
+        # O MP pode enviar dados via Query String (IPN) ou JSON Body (Webhooks)
+        data = request.get_json(silent=True) or {}
+        topic = request.args.get('topic') or request.args.get('type') or data.get('type') or data.get('action')
+        payment_id = request.args.get('id') or request.args.get('data.id') or data.get('data', {}).get('id') or data.get('id')
         
-        if (topic == 'payment' or topic == 'payment.created') and payment_id:
+        print(f"[Webhook MP] Recebido: topic={topic}, id={payment_id}")
+
+        if (topic in ['payment', 'payment.created']) and payment_id:
             sdk = mercadopago.SDK(mp_token)
-            payment_info = sdk.payment().get(payment_id)
+            payment_info = sdk.payment().get(str(payment_id))
             
-            if payment_info["status"] == 200:
+            if payment_info.get("status") == 200:
                 payment = payment_info["response"]
-                if payment["status"] == "approved":
+                print(f"[Webhook MP] Status do pagamento {payment_id}: {payment.get('status')}")
+                
+                if payment.get("status") == "approved":
                     # Pega o ID da Igreja que enviamos no external_reference
                     church_id_str = payment.get("external_reference")
-                    if church_id_str and church_id_str.isdigit():
+                    if church_id_str and str(church_id_str).isdigit():
                         church = Church.query.get(int(church_id_str))
                         if church:
                             church.subscription_status = 'active'
                             # Calcula expiração baseada no plano
-                            import datetime as dt
+                            from datetime import timedelta
+                            now = datetime.utcnow()
                             if church.plan and church.plan.duration_months > 0:
-                                church.subscription_expires_at = dt.datetime.utcnow() + dt.timedelta(days=30 * church.plan.duration_months)
+                                church.subscription_expires_at = now + timedelta(days=30 * church.plan.duration_months)
                             else:
                                 # Se plano for 0 ou nulo, é ilimitado (colocamos 100 anos)
-                                church.subscription_expires_at = dt.datetime.utcnow() + dt.timedelta(days=36500)
+                                church.subscription_expires_at = now + timedelta(days=36500)
                                 
                             church.mp_payment_id = str(payment_id)
                             db.session.commit()
+                            print(f"[Webhook MP] Igreja {church.name} (ID: {church.id}) ativada com sucesso!")
+                        else:
+                            print(f"[Webhook MP] Igreja com ID {church_id_str} não encontrada.")
+                else:
+                    print(f"[Webhook MP] Pagamento {payment_id} não aprovado. Status: {payment.get('status')}")
+            else:
+                print(f"[Webhook MP] Erro ao consultar pagamento {payment_id}: {payment_info}")
     except Exception as e:
-        print("Webhook Error:", e)
+        print("[Webhook MP] Exceção crítica:", e)
+        import traceback
+        traceback.print_exc()
     
     return jsonify({"status": "ok"}), 200
 

@@ -48,6 +48,8 @@ class Church(db.Model):
     subscription_status     = db.Column(db.String(20), nullable=False, default='pending') # pending, active, expired
     subscription_expires_at = db.Column(db.DateTime, nullable=True)
     mp_subscription_id      = db.Column(db.String(100), nullable=True)
+    mp_payment_id           = db.Column(db.String(100), nullable=True)
+    pastor_id               = db.Column(db.Integer, nullable=True)
     plan_id                 = db.Column(db.Integer, db.ForeignKey('plan.id'), nullable=True)
 
     # Relacionamentos
