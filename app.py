@@ -253,11 +253,12 @@ def checkout_payment():
                         "title": f"Assinatura ChurchSaaS - {plan.name}",
                         "quantity": 1,
                         "currency_id": "BRL",
-                        "unit_price": final_price
+                        "unit_price": float(round(final_price, 2))
                     }
                 ],
                 "payer": {
-                    "email": current_user.email
+                    "email": current_user.email,
+                    "first_name": current_user.name.split()[0] if current_user.name else "Cliente"
                 },
                 "external_reference": str(current_user.church.id), # ID da Igreja
                 "back_urls": {
@@ -274,7 +275,11 @@ def checkout_payment():
             preference_response = sdk.preference().create(preference_data)
             
             if preference_response.get("status") in [200, 201]:
-                init_point = preference_response["response"]["init_point"]
+                # Se for token de teste, prioriza o sandbox_init_point
+                if mp_token.startswith("TEST-"):
+                    init_point = preference_response["response"].get("sandbox_init_point")
+                else:
+                    init_point = preference_response["response"].get("init_point")
             else:
                 flash(f"Erro Mercado Pago: {preference_response.get('response', {}).get('message', 'Erro desconhecido')}", "danger")
                 print("Erro MP:", preference_response)
