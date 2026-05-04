@@ -273,6 +273,9 @@ def checkout_payment():
                 preference_data["notification_url"] = host_url + url_for('webhook_mp')
                 
             preference_response = sdk.preference().create(preference_data)
+            print(f"[DEBUG MP] Preference Response Status: {preference_response.get('status')}")
+            if preference_response.get("status") not in [200, 201]:
+                print(f"[DEBUG MP] Erro Detalhado: {preference_response.get('response')}")
             
             if preference_response.get("status") in [200, 201]:
                 # Se for token de teste, prioriza o sandbox_init_point
